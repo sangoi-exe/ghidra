@@ -1,6 +1,6 @@
 # Extension placement correction
 
-Date: 2026-10-14, America/Sao_Paulo. Lifecycle: Implementation. Completion Code Gate selection is pending.
+Date: 2026-10-14, America/Sao_Paulo. Lifecycle: Closeout. Status: complete.
 
 ## Authority and correction
 
@@ -20,6 +20,12 @@ Two initial ad hoc evidence checks misclassified their own shell process and nor
 
 ## Delivery boundary
 
-Fork commit `52599cf359566833d89fd833034733be00d8c35b` records the source/configuration/test slice on `master`; current guidance and task records form a separate documentation checkpoint. Pre-existing Ghidra tracked files and untracked `.refs/` remain outside the change set. Source/build settings of the parent repository are unchanged. No source repository was deleted, no Git history was rewritten, and no push was performed.
+Fork commit `52599cf359566833d89fd833034733be00d8c35b` records the source/configuration/test slice on `master`; candidate `8bf3c3642138d7eb8ece847c04a8ef171391f0cc` adds current guidance and task records as a separate documentation checkpoint. Pre-existing Ghidra tracked files and untracked `.refs/` remain outside the change set. Source/build settings of the parent repository are unchanged. No source repository was deleted, no Git history was rewritten, and no push was performed.
 
-The required completion Code Gate has not been selected or run for this placement correction. The previous first-increment Code Gate does not approve the new Git/build location. The only remaining human choice is local Senior Code Reviewer, ChatGPT Web Extra High, or ChatGPT Web Pro for the committed fork candidate.
+## Local Code Gate and Closeout
+
+The user answered `local` after the assistant offered the three Code Gate choices for this committed fork candidate. Senior Code Reviewer `/root/fork_extension_placement_review` reviewed range `918acd744d17e3b95fbde44ec6ab3e59b6dbd45f..8bf3c3642138d7eb8ece847c04a8ef171391f0cc` and returned `PROCEED`, with no findings or nits. All fourteen candidate paths and all three required partitions received complete semantic coverage. No required surface was unreviewed or evidence-blocked. The reviewer independently inspected retained build/native/MCP evidence and source/archive equality without running a new build or product runtime.
+
+The root read the registered `PROCEED` transition and entered Closeout. This follow-up is `bookkeeping memorialization`: the plan, task log and changelog record the produced result; no reviewed module byte or runtime claim changed. No corrective Worker batch, new Gate or material decision was required. Final delivery inspection retains only pre-existing untracked `.refs/` outside the committed task. The fork is ready for the user's own push.
+
+Existing exclusions remain explicit: no new native/MCP execution for relocation, no GUI/Real Mode/general corpus validation, and no proof of segment-faithful C. Loading the Java extension requires a new Ghidra process with the module present at startup; no existing installation or process was changed by this task.

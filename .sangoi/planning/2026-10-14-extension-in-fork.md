@@ -1,8 +1,8 @@
 # Place the validated extension inside the Ghidra fork
 
-Status: on-hold
+Status: complete
 Task mode: Doctrine
-Lifecycle phase: Implementation
+Lifecycle phase: Closeout
 Strategy epoch: 1
 Plan kind: Targeted Adjustment Plan
 Workspace: `/home/lucas/work/ghidra`
@@ -21,7 +21,9 @@ Current-user anchors, in this thread's source order:
 
 - After the Plan Gate returned PROCEED and the assistant asked to apply the transfer/build, the user answered `sim, por favor`, authorizing implementation of this reviewed correction.
 
-The old first-increment task is complete. Its plan and validation are historical source/evidence, not a resumed execution authority. This plan owns the placement correction. The latest post-Gate user message activates Implementation without changing the confirmed destination or preservation constraints.
+- After candidate `8bf3c3642138d7eb8ece847c04a8ef171391f0cc` was committed and the assistant offered the three completion Code Gate options, the user answered `local`, selecting Senior Code Reviewer for this exact Gate.
+
+The old first-increment task is complete. Its plan and validation are historical source/evidence, not a resumed execution authority. This plan owns the placement correction. The implementation authorization activated Implementation without changing the confirmed destination or preservation constraints. The later local review selection closed the remaining review-choice checkpoint.
 
 ## Before and required result
 
@@ -69,7 +71,7 @@ The smallest directly verifiable slice is the transfer plus independent module b
 
 ## Implementation evidence
 
-The bounded Worker transferred the nine named product/build paths from source commit `70476eee3a31f966e28943db700333d23475d585`, added the local settings boundary and validation summary, and updated product guidance. The module is inside the fork with no nested `.git`. The old source repository remains clean and unchanged. Fork commit `52599cf359566833d89fd833034733be00d8c35b` records the source/configuration/test slice; current guidance and task records form a separate documentation checkpoint.
+The bounded Worker transferred the nine named product/build paths from source commit `70476eee3a31f966e28943db700333d23475d585`, added the local settings boundary and validation summary, and updated product guidance. The module is inside the fork with no nested `.git`. The old source repository remains clean and unchanged. Fork commit `52599cf359566833d89fd833034733be00d8c35b` records the source/configuration/test slice; `8bf3c3642138d7eb8ece847c04a8ef171391f0cc` records current guidance and task records as a separate documentation checkpoint.
 
 The relocated native build passed on Ghidra 12.1.4/JDK 21/Gradle 9.7.1 and reported only root project `ghidra-legacy-toolchains`. The lead independently verified the complete eleven-file frontier, the unchanged transferred source/assets, and all new JAR/source-archive entries against the previously executed module. Packaged current documentation matches the module. Pre-existing tracked Ghidra files are unchanged.
 
@@ -77,10 +79,12 @@ Detailed proof is summarized by [module validation](../../extensions/ghidra-lega
 
 ## Lifecycle and next action
 
-Open material decisions: none for the completed placement/build. The exact completion Code Gate choice is still pending. A demonstrated need to change original Ghidra files, analyzer behavior, runtime ownership or external publication returns to the user.
+Open material decisions: none. The completed task does not authorize changes to original Ghidra files, analyzer behavior, runtime ownership or external publication.
 
-Plan Gate: local Senior Plan Auditor / Intent contract audit, Doctrine / Initial, amendment transition not-applicable, returned `PROCEED` on `/root/fork_extension_placement_plan` for checkpoint `1261a79f3358c329ab75d1cc6e047fc0d89e2bfc`. Required intent coverage is complete, with no material findings. The lead read the registered transition and placed this plan on hold in Initial. Completion Code Gate is not selected for this new change; the previous Gate's selection expired with its terminal result.
+Plan Gate: local Senior Plan Auditor / Intent contract audit, Doctrine / Initial, amendment transition not-applicable, returned `PROCEED` on `/root/fork_extension_placement_plan` for checkpoint `1261a79f3358c329ab75d1cc6e047fc0d89e2bfc`. Required intent coverage is complete, with no material findings. The lead read the registered transition and placed this plan on hold in Initial before the later user implementation authorization.
 
-Current blocker: no implementation blocker remains. The plan is on hold in Implementation while the user selects the final review for this fork candidate. The review has not been selected or performed.
+Code Gate: the user's `local` selection authorized Senior Code Reviewer / Task change-set review, Doctrine / Implementation, for range `918acd744d17e3b95fbde44ec6ab3e59b6dbd45f..8bf3c3642138d7eb8ece847c04a8ef171391f0cc`. Task `/root/fork_extension_placement_review` returned `PROCEED`, with no findings or nits and complete semantic coverage of all three partitions and fourteen changed paths. The lead read the sole matching transition and entered Closeout. No remediation or review override was needed.
 
-Next action: obtain the completion Code Gate choice for the committed fork candidate. The destination and execution decisions are closed; do not ask the user to select the location or authorize the transfer again.
+Current blocker: none. Closeout records only the produced review result and delivery state; it changes no reviewed module bytes. Existing semantic exclusions remain unverified, not new accepted functionality.
+
+Next action: no task implementation remains. The fork commits are ready for the user's normal push. No automatic push, deletion of the historical source repository or instruction reload is part of this task.
