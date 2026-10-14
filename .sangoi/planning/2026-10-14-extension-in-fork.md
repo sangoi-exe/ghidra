@@ -2,7 +2,7 @@
 
 Status: on-hold
 Task mode: Doctrine
-Lifecycle phase: Initial
+Lifecycle phase: Implementation
 Strategy epoch: 1
 Plan kind: Targeted Adjustment Plan
 Workspace: `/home/lucas/work/ghidra`
@@ -19,7 +19,9 @@ Current-user anchors, in this thread's source order:
 
 - The user answered `sim, confirmo`, explicitly confirming that complete delta and authorizing its Plan Gate through the result.
 
-The old first-increment task is complete. Its plan and validation are historical source/evidence, not a resumed execution authority. This plan owns the placement correction. A normal Plan Gate PROCEED still requires later user implementation authorization; none has been received for that post-Gate checkpoint.
+- After the Plan Gate returned PROCEED and the assistant asked to apply the transfer/build, the user answered `sim, por favor`, authorizing implementation of this reviewed correction.
+
+The old first-increment task is complete. Its plan and validation are historical source/evidence, not a resumed execution authority. This plan owns the placement correction. The latest post-Gate user message activates Implementation without changing the confirmed destination or preservation constraints.
 
 ## Before and required result
 
@@ -45,7 +47,7 @@ After: the extension's product/build sources and user guidance are tracked under
 
 ## Selected route and source evidence
 
-The selected route is a standalone extension build nested at `extensions/ghidra-legacy-toolchains/`, but versioned by the enclosing fork. This is outside the directories enumerated by root `settings.gradle`. `gradle/support/settingsUtil.gradle` scans only `*/build.gradle` within each explicitly included directory. The proposed destination is absent and not ignored.
+The selected route is a standalone extension build nested at `extensions/ghidra-legacy-toolchains/`, but versioned by the enclosing fork. This is outside the directories enumerated by root `settings.gradle`. `gradle/support/settingsUtil.gradle` scans only `*/build.gradle` within each explicitly included directory. Recon established that the destination was absent and not ignored before the transfer.
 
 Placing the standalone build directly under `Ghidra/Extensions/` would enter native root discovery and mix the already-selected installed-runtime extension build with Ghidra's source build. That is not the selected route. The module-local `settings.gradle` uses Gradle's native independent-build boundary; no custom loader, wrapper or include protocol is introduced. Preserve the existing project name so artifact/module identities do not drift.
 
@@ -65,12 +67,20 @@ The analyzer, prototype asset and focused native validation script remain the sa
 
 The smallest directly verifiable slice is the transfer plus independent module build. The decisive oracles are native Git source comparisons, native Gradle output and named runtime-payload equality, not a new maintained validator. This correction does not require another compiler investigation, whole Ghidra build or speculative test matrix.
 
+## Implementation evidence
+
+The bounded Worker transferred the nine named product/build paths from source commit `70476eee3a31f966e28943db700333d23475d585`, added the local settings boundary and validation summary, and updated product guidance. The module is inside the fork with no nested `.git`. The old source repository remains clean and unchanged. Fork commit `52599cf359566833d89fd833034733be00d8c35b` records the source/configuration/test slice; current guidance and task records form a separate documentation checkpoint.
+
+The relocated native build passed on Ghidra 12.1.4/JDK 21/Gradle 9.7.1 and reported only root project `ghidra-legacy-toolchains`. The lead independently verified the complete eleven-file frontier, the unchanged transferred source/assets, and all new JAR/source-archive entries against the previously executed module. Packaged current documentation matches the module. Pre-existing tracked Ghidra files are unchanged.
+
+Detailed proof is summarized by [module validation](../../extensions/ghidra-legacy-toolchains/docs/validation.md); the [task log](../task-logs/2026-10-14-extension-in-fork.md) records attempts and delivery state. These are evidence followers, not additional Scope/lifecycle authorities. The relocation introduced no new native/MCP behavior claim or remote publication.
+
 ## Lifecycle and next action
 
-Open material decisions: none for the selected placement and first build. A demonstrated need to change original Ghidra files, analyzer behavior, runtime ownership or external publication returns to the user.
+Open material decisions: none for the completed placement/build. The exact completion Code Gate choice is still pending. A demonstrated need to change original Ghidra files, analyzer behavior, runtime ownership or external publication returns to the user.
 
 Plan Gate: local Senior Plan Auditor / Intent contract audit, Doctrine / Initial, amendment transition not-applicable, returned `PROCEED` on `/root/fork_extension_placement_plan` for checkpoint `1261a79f3358c329ab75d1cc6e047fc0d89e2bfc`. Required intent coverage is complete, with no material findings. The lead read the registered transition and placed this plan on hold in Initial. Completion Code Gate is not selected for this new change; the previous Gate's selection expired with its terminal result.
 
-Current blocker: the Plan Gate is complete; later user implementation authorization is pending. No extension files have been transferred.
+Current blocker: no implementation blocker remains. The plan is on hold in Implementation while the user selects the final review for this fork candidate. The review has not been selected or performed.
 
-Next action: obtain later unambiguous user implementation authorization, activate this plan in Implementation, and dispatch the bounded transfer/build Worker. The destination decision is closed; do not ask the user to select the location again.
+Next action: obtain the completion Code Gate choice for the committed fork candidate. The destination and execution decisions are closed; do not ask the user to select the location or authorize the transfer again.
