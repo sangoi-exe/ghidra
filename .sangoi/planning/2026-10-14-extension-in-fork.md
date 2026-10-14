@@ -1,6 +1,6 @@
 # Place the validated extension inside the Ghidra fork
 
-Status: active
+Status: on-hold
 Task mode: Doctrine
 Lifecycle phase: Initial
 Strategy epoch: 1
@@ -69,8 +69,8 @@ The smallest directly verifiable slice is the transfer plus independent module b
 
 Open material decisions: none for the selected placement and first build. A demonstrated need to change original Ghidra files, analyzer behavior, runtime ownership or external publication returns to the user.
 
-Plan Gate: local Senior Plan Auditor / Intent contract audit, Doctrine / Initial, amendment transition not-applicable. Not run yet. Completion Code Gate is not selected for this new change; the previous Gate's selection expired with its terminal result.
+Plan Gate: local Senior Plan Auditor / Intent contract audit, Doctrine / Initial, amendment transition not-applicable, returned `PROCEED` on `/root/fork_extension_placement_plan` for checkpoint `1261a79f3358c329ab75d1cc6e047fc0d89e2bfc`. Required intent coverage is complete, with no material findings. The lead read the registered transition and placed this plan on hold in Initial. Completion Code Gate is not selected for this new change; the previous Gate's selection expired with its terminal result.
 
-Current blocker: the required Plan Gate and later implementation activation are pending. No extension files have been transferred.
+Current blocker: the Plan Gate is complete; later user implementation authorization is pending. No extension files have been transferred.
 
-Next action: audit this confirmed placement contract. Normal PROCEED places the plan on hold in Initial until a later unambiguous user implementation authorization.
+Next action: obtain later unambiguous user implementation authorization, activate this plan in Implementation, and dispatch the bounded transfer/build Worker. The destination decision is closed; do not ask the user to select the location again.
