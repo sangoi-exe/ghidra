@@ -1,0 +1,22 @@
+def ghidraInstallDir = providers.gradleProperty('GHIDRA_INSTALL_DIR').orElse(providers.environmentVariable('GHIDRA_INSTALL_DIR'))
+if (!ghidraInstallDir.present) {
+    throw new GradleException('Set GHIDRA_INSTALL_DIR to the Ghidra installation used to build this extension.')
+}
+
+if (providers.gradleProperty('buildOutputDir').present) {
+    layout.buildDirectory = file(providers.gradleProperty('buildOutputDir').get())
+}
+
+apply from: new File(ghidraInstallDir.get(), 'support/buildExtension.gradle')
+
+// Keep native build products together, including tasks whose upstream defaults use project paths.
+tasks.named('copyDependencies') {
+    into layout.buildDirectory.dir('dependencies')
+}
+tasks.named('zipSource') {
+    destinationDirectory = layout.buildDirectory.dir('source')
+}
+tasks.named('buildExtension') {
+    destinationDirectory = layout.buildDirectory.dir('dist')
+    exclude '.git/**', '.gitignore', '.sangoi/**', 'native-workspace/**', 'native-workspace'
+}
