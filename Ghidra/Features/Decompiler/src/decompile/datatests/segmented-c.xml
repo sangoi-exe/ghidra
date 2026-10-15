@@ -1,0 +1,43 @@
+<decompilertest>
+<binaryimage arch="x86:LE:16:Protected Mode:default">
+<!-- Real instruction foundations: TLINK 5.1 writer, segment1 [3c0b,3ca1), and the 28-byte Borland F_SCOPY body. Names describe analysis roles, not recovered source. No DS/ES/SS context or runtime selector resolution is supplied. -->
+<bytechunk space="ram" offset="0x10003c0b" readonly="true">
+5756508b3e8c058e06c009268b3d8e06d80926807d0101740726807d0103
+7571263b5d04756bbfff0323fa744b8a85d70c8bb5d80c3c9a74113cea75
+54c785d70c9090c685d90ce9eb0bc785d70c900ec685d90ce80bff7505c6
+06d60c0181c202f889b5da0c2bcf83e9042b0e8e05c7068e02fffff9eb1a
+8b3682023b368c05750f8b3684023b368e057505a08602eba0f8585e5fc3
+</bytechunk>
+<bytechunk space="ram" offset="0x10003dc9" readonly="true">
+558bec56571ec57606c47e0afcd1e9f3a513c9f3a41f5f5e5dca0800
+</bytechunk>
+<symbol space="ram" offset="0x10003c0b" name="tlink_writer"/>
+<symbol space="ram" offset="0x10003dc9" name="f_scopy"/>
+</binaryimage>
+<script>
+  <com>parse line extern bool __cdecl16near tlink_writer(void);</com>
+  <com>lo fu tlink_writer</com>
+  <com>map return [register,0x200,1] bool</com>
+  <com>decompile</com>
+  <com>print raw</com>
+  <com>print C</com>
+  <com>parse line extern void __stdcall16far f_scopy(void);</com>
+  <com>lo fu f_scopy</com>
+  <com>map param 0 [register,0x4,2] uint2 byte_count</com>
+  <com>map param 1 s0x4 uint4 source</com>
+  <com>map param 2 s0x8 uint4 destination</com>
+  <com>decompile</com>
+  <com>print raw</com>
+  <com>print C</com>
+  <com>quit</com>
+</script>
+<stringmatch name="Segmented writer DS read" min="1" max="1">\*\(xunknown2 \*\)segmentop\(unaff_DS,\(xunknown2 \*\)0x58c\)</stringmatch>
+<stringmatch name="Segmented writer word store" min="1" max="1">\*\(xunknown2 \*\)segmentop\(unaff_DS,.*\) = 0x9090;</stringmatch>
+<stringmatch name="Segmented writer byte store" min="1" max="1">\*\(xunknown1 \*\)segmentop\(unaff_DS,.*\) = 0xe9;</stringmatch>
+<stringmatch name="Segmented copier stack selector" min="1" max="20">segmentop\(unaff_SS,</stringmatch>
+<stringmatch name="Segmented copier source selector" min="2" max="2">pxVar1 = \(xunknown2 \*\)segmentop\(xVar7,pxVar4\);</stringmatch>
+<stringmatch name="Segmented copier destination selector" min="2" max="2">pxVar2 = \(xunknown2 \*\)segmentop\(xVar6,pxVar5\);</stringmatch>
+<stringmatch name="Segmented copier far argument read" min="2" max="2">\*\(uint4 \*\)segmentop\(unaff_SS,&amp;source\)</stringmatch>
+<stringmatch name="Segmented copier word read and write" min="1" max="1">\*pxVar2 = \*pxVar1;</stringmatch>
+<stringmatch name="Segmented copier byte read and write" min="1" max="1">\*\(xunknown1 \*\)pxVar2 = \*\(xunknown1 \*\)pxVar1;</stringmatch>
+</decompilertest>

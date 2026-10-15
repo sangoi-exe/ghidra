@@ -358,12 +358,6 @@ bool PrintC::checkArrayDeref(const Varnode *vn) const
   if (!vn->isImplied()) return false;
   if (!vn->isWritten()) return false;
   op = vn->getDef();
-  if (op->code()==CPUI_SEGMENTOP) {
-    vn = op->getIn(2);
-    if (!vn->isImplied()) return false;
-    if (!vn->isWritten()) return false;
-    op = vn->getDef();
-  }
   if ((op->code()!=CPUI_PTRSUB)&&(op->code()!=CPUI_PTRADD)) return false;
   return true;
 }
@@ -1161,15 +1155,23 @@ void PrintC::opPtrsub(const PcodeOp *op)
   }
 }
 
-/// - slot 0 is the spaceid constant
-/// - slot 1 is the segment, we could conceivably try to annotate the segment here
-/// - slot 2 is the pointer we are really interested in printing
+/// Emit an analysis address expression retaining both the selector and the offset. Any LOAD or STORE must dereference the result, not the offset argument. This notation does not resolve a runtime selector.
 ///
 /// \param op is the SEGMENTOP PcodeOp
 void PrintC::opSegmentOp(const PcodeOp *op)
 
 {
-  pushVn(op->getIn(2),op,mods);
+  uint4 m = mods & ~(print_load_value | print_store_value);
+  Datatype *dt = op->getOut()->getHighTypeDefFacing();
+  if (!option_nocasts && dt->getMetatype() == TYPE_PTR) {
+    pushOp(&typecast,op);
+    pushType(dt);
+  }
+  pushOp(&function_call,op);
+  pushAtom(Atom(op->getOpcode()->getOperatorName(op),optoken,EmitMarkup::no_color,op));
+  pushOp(&comma,op);
+  pushVn(op->getIn(2),op,m);
+  pushVn(op->getIn(1),op,m);
 }
 
 void PrintC::opCpoolRefOp(const PcodeOp *op)

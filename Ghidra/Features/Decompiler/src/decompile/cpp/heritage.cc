@@ -1037,7 +1037,16 @@ bool Heritage::discoverIndexedStackPointers(AddrSpace *spc,vector<PcodeOp *> &fr
 	case CPUI_SEGMENTOP:
 	{
 	  if (op->getIn(2) != curNode.vn) break;	// Check that stackpointer comes in as inner pointer
-	  // Treat output as having the same offset, fallthru to COPY
+	  // The selector prevents this from being a known stack offset. Retain the possible stack alias, but guard accesses just as for an unknown index.
+	  StackNode nextNode(outVn,curNode.offset,curNode.traversals | StackNode::nonconstant_index);
+	  if (nextNode.iter != nextNode.vn->endDescend()) {
+	    outVn->setMark();
+	    path.push_back(nextNode);
+	    markedVn.push_back(outVn);
+	  }
+	  else if (outVn->getSpace()->getType() == IPTR_SPACEBASE)
+	    unknownStackStorage = true;
+	  break;
 	}
 	case CPUI_INDIRECT:
 	case CPUI_COPY:

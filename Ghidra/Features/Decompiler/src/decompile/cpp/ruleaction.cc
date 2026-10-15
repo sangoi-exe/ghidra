@@ -4226,19 +4226,9 @@ AddrSpace *RuleLoadVarnode::checkSpacebase(Architecture *glb,PcodeOp *op,uintb &
 
   offvn = op->getIn(1);		// Address offset
   loadspace = op->getIn(0)->getSpaceFromConst(); // Space being loaded/stored
-  // Treat segmentop as part of load/store
+  // A segmented address is not a spacebase offset: its selector is an independent dependency, even when the offset is based on the stack pointer. RuleSegment handles constant addresses.
   if (offvn->isWritten()&&(offvn->getDef()->code()==CPUI_SEGMENTOP)) {
-    offvn = offvn->getDef()->getIn(2);
-    // If we are looking for a spacebase (i.e. stackpointer)
-    // Then currently we COMPLETELY IGNORE the base part of the
-    // segment. We assume it is all correct.
-    // If the segmentop inner is constant, we are NOT looking
-    // for a spacebase, and we do not igore the base. If the
-    // base is also constant, we let RuleSegmentOp reduce
-    // the whole segmentop to a constant.  If the base
-    // is not constant, we are not ready for a fixed address.
-    if (offvn->isConstant())
-      return (AddrSpace *)0;
+    return (AddrSpace *)0;
   }
   else if (offvn->isConstant()) { // Check for constant
     offoff = offvn->getOffset();

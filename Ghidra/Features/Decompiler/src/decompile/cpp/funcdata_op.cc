@@ -492,20 +492,7 @@ Varnode *Funcdata::createStackRef(AddrSpace *spc,uintb off,PcodeOp *op,Varnode *
   else
     opInsertBefore(addop,op);
 
-  AddrSpace *containerid = spc->getContain();
-  SegmentOp *segdef = glb->userops.getSegmentOp(containerid->getIndex());
-
-  if (segdef != (SegmentOp *)0) {
-    PcodeOp *segop = newOp(3,op->getAddr());
-    opSetOpcode(segop,CPUI_SEGMENTOP);
-    Varnode *segout = newUniqueOut(containerid->getAddrSize(),segop);
-    opSetInput(segop,newVarnodeSpace(containerid),0);
-    opSetInput(segop,newConstant(segdef->getBaseSize(),0),1);
-    opSetInput(segop,addout,2);
-    opInsertAfter(segop,addop); // Make sure -segop- comes after -addop- regardless if before/after -op-
-    addout = segout;
-  }
-
+  // This is an abstract reference into the spacebase space, not a machine segmented address. Keep the native spacebase offset so LOAD/STORE normalization can recover the stack location without inventing a selector.
   return addout;
 }
 
