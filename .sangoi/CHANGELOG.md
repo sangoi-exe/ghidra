@@ -8,7 +8,7 @@
 
 - Correct selector-dependent C and actual segmented call-argument reads in the decompiler. Focused native units8/8 and data assertions92/92 pass, together with named real helper/writer cases and nonsegmented controls. Correct native MZ detection for the supplied BCC2.0 image; four native tests and ordinary import pass.
 
-- Build matching Ghidra12.3 DEV and the extension without global installation. Existing MCP7.0.0 analyzes and saves the three private test Programs, but its C-query consumer references an incompatible SLEIGH API. The user selected a tracked source copy under `extensions/ghidra-mcp/`, with localized API/build adaptation rather than a separate fork or patch procedure. Its Strategy-reset Plan Gate returned `PROCEED` without findings; subsequent implementation authorization remains pending and no MCP source has been copied. Completion Code Gate and successful MCP C-query proof are not complete; no completion review pass or remote push is claimed.
+- Build matching Ghidra12.3 DEV and both extensions without global installation. Copy the MCP product sources into `extensions/ghidra-mcp/` with retained upstream layout/license and localized API/build adaptation. Native compilation/version checks pass; selected Java tests pass across the main run and a focused temporary-path rerun, and Python reports1095 passed/nine platform skips. Actual copied-bridge analysis, all three formerly failing C queries and saves now pass on private Programs. The user-selected local Code Gate remains pending; no completion review pass or remote push is claimed.
 
 ## Unreleased — extension placement correction
 
