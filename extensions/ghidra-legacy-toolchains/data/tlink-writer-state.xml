@@ -1,0 +1,38 @@
+<!-- Exact qualified TLINK4.01/5.1 near writer only; analysis storage, not a historical C ABI. -->
+<prototype name="tlink_writer_state_16near" extrapop="2" stackshift="2">
+  <input>
+    <pentry minsize="2" maxsize="2"><register name="BX"/></pentry>
+    <pentry minsize="2" maxsize="2"><register name="CX"/></pentry>
+    <pentry minsize="2" maxsize="2"><register name="DX"/></pentry>
+    <pentry minsize="2" maxsize="2"><register name="DS"/></pentry>
+  </input>
+  <output>
+    <!-- Native ParamEntry joins must overlap a preceding storage entry. -->
+    <pentry minsize="1" maxsize="1"><register name="CF"/></pentry>
+    <pentry minsize="7" maxsize="7"><addr space="join" piece1="ES" piece2="CX" piece3="DX" piece4="CF"/></pentry>
+  </output>
+  <!-- Low16 preservation on ordinary completion with intact selected memory/stack views. -->
+  <unaffected>
+    <register name="AX"/>
+    <register name="BX"/>
+    <register name="SP"/>
+    <register name="BP"/>
+    <register name="SI"/>
+    <register name="DI"/>
+    <register name="DS"/>
+    <register name="SS"/>
+    <register name="CS"/>
+    <register name="DF"/>
+  </unaffected>
+  <killedbycall>
+    <register name="CX"/>
+    <register name="DX"/>
+    <register name="ES"/>
+    <register name="CF"/>
+    <register name="PF"/>
+    <register name="AF"/>
+    <register name="ZF"/>
+    <register name="SF"/>
+    <register name="OF"/>
+  </killedbycall>
+</prototype>

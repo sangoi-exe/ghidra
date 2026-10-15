@@ -1,10 +1,14 @@
 # Local fork changelog
 
-## Planned — integrated toolchain analysis and segmented C
+## In progress — integrated toolchain analysis and segmented C
 
 - Record the user-confirmed single-delivery expansion: qualified compiler/tool profiles, runtime helpers, call/reference analysis, structural NB02 recognition and necessary decompiler-core corrections for segmented-memory C expressions.
 
-- Record local Intent Contract audit `PROCEED`, with no material findings. Implementation is on hold for the later execution authorization. No feature code or runtime result is delivered by this planning entry.
+- Implement eight qualified exact-image profiles, complete-body runtime helpers, native NE provenance and structural NB02 observations in the independent extension. All current profiles pass automatic native validation, including corrected shared-entry ownership and retained UNKNOWN cleanup.
+
+- Correct selector-dependent C and actual segmented call-argument reads in the decompiler. Focused native units8/8 and data assertions92/92 pass, together with named real helper/writer cases and nonsegmented controls. Correct native MZ detection for the supplied BCC2.0 image; four native tests and ordinary import pass.
+
+- Build matching Ghidra12.3 DEV and the extension without global installation. Existing MCP7.0.0 analyzes and saves the three private test Programs, but its C-query consumer references an incompatible SLEIGH API. The user selected a tracked source copy under `extensions/ghidra-mcp/`, with localized API/build adaptation rather than a separate fork or patch procedure. The amended Plan Gate and subsequent implementation authorization remain pending; no MCP source has been copied. Completion Code Gate and successful MCP C-query proof are not complete; no review pass or remote push is claimed.
 
 ## Unreleased — extension placement correction
 

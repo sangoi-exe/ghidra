@@ -1,98 +1,105 @@
 # Build and use
 
-## Supported result
+## Supported analysis
 
-The analyzer `Borland F_SCOPY (qualified 16-bit)` matches the complete evidenced 28-byte helper in initialized executable memory. It verifies native instruction boundaries and 16-bit operand/address context before applying a function contract. It does not identify an exclusive Borland release: the inspected 3.1 and 4.5 library members have the same helper bytes.
+`Legacy toolchain exact-image profiles` registers the following profiles. Qualification requires the native executable format and complete retained original `FileBytes` identity (size and SHA-256), not a filename, version string or relocated-memory comparison.
 
-The analyzer accepts the native x86 16-bit Protected Mode and Real Mode language IDs. Actual execution validation covers the supplied SimTower NE program in Protected Mode; Real Mode and other binaries have not been validated. Existing higher-priority function signatures are left unchanged.
+| Qualified input | Native import | Profile ID |
+| --- | --- | --- |
+| BCC 2.0 | MZ | `bcc20-qualified` |
+| BCC 3.1 | NE | `bcc31-qualified` |
+| BCC 4.5 | NE | `bcc45-qualified` |
+| TASM 3.1 | MZ | `tasm31-qualified` |
+| TLINK 4.01 | MZ | `tlink401-qualified` |
+| TLINK 5.1 | NE | `tlink51-qualified` |
+| Supplied SCRANTIC image | NE | `scrantic-runtime-qualified` |
+| Supplied SimTower image | NE | `simtower-runtime-qualified` |
 
-The installed contract is:
+The profiles add selected native layouts, enums, labels, complete functions and qualified references. Shared profile operations check original-file mapping and preserve higher-priority user annotations rather than treating imported coordinates as universal addresses. Undefined fields, incomplete function extents, unobserved runtime state and unproved subordinate effects remain explicit in the annotations.
 
-| Analysis value | Native storage |
+BCC 2.0 includes static file-backed overlay projections and qualified joins. These are analysis views of retained bytes, not an implementation of runtime overlay residency, selector assignment or overlay execution. TASM/TLINK state-dependent descriptions distinguish stored defaults from actual invocations. TLINK's selected writer contract includes an analysis-only CF/DX/CX/ES result and near-return frame; it is not a historical return type, physical-I/O success contract or proof of all caller propagation.
+
+SCRANTIC includes qualified LSEEK and heap-member correspondences. SimTower includes selected startup, SPRF/VPRINTER, EXIT and XXV correspondences. Supplier names and binding roles are descriptive candidates, not retained debug symbols, release-exclusive signatures, modern library ABIs or full transitive runtime models.
+
+### Complete-body helpers
+
+These separately enabled analyzers require complete evidenced bytes, native instruction boundaries and 16-bit operand/address context. They accept native x86 16-bit Protected Mode and Real Mode language IDs; actual application validation covers the selected native NE imports, not general Real Mode execution. Higher-priority function contracts are retained.
+
+| Analyzer | Qualified contract |
 | --- | --- |
-| Unsigned 16-bit byte count | `CX:2` |
-| Source offset/selector record | Entry stack `+4`, four bytes |
-| Destination offset/selector record | Entry stack `+8`, four bytes |
-| Scalar return | No manufactured AX/DX result; analysis `void` |
-| Argument cleanup | 8 bytes |
-| Far return address / total extrapop | 4 bytes / 12 bytes |
+| `Borland F_SCOPY (qualified 16-bit)` | Complete 28-byte body; implicit `CX:2` count, source at entry stack `+4`, destination at `+8`, analysis `void`, argument purge 8 and far-return size 4 (total extrapop 12). |
+| `Borland far copy (qualified 16-bit)` | Complete 38-byte body; destination/source offset-selector records and WORD count on the caller-owned stack, `DX:AX` record result, purge 0 and far-return size 4. |
+| `Borland far pointer compare (qualified 16-bit)` | Complete 33-byte F_PCMP correspondence; normalized finite-word comparison of `DX:AX` and `CX:BX`, analysis-only nine-byte ZF/AX/DX/BX/CX result. ZF is not raw input-pair equality and AX is not boolean. |
+| `Borland setmem (qualified 16-bit)` | Complete 40-byte internal fill body; WORD destination offset, count and fill input, WORD AX result, caller-owned six-byte argument frame. |
+| `Borland memset (qualified 16-bit)` | Complete 29-byte fill wrapper; WORD destination offset/count/fill storage and result, not a host-pointer prototype. |
+| `Borland word-pair shifts (qualified 16-bit)` | Left, arithmetic-right and logical-right far cores with `DX:AX` value/result and `CL` count; mathematical qualification covers counts 0..31. Actual near adapters retain labels rather than manufactured overlapping functions. |
 
-`/LegacyToolchains/Borland/FarAddress16` contains a two-byte `offset` followed by a two-byte `selector`. It preserves argument storage; it is not a flat pointer, a recovered historical C declaration, or an implementation of selector resolution.
+`/LegacyToolchains/Borland/FarAddress16` contains a two-byte `offset` followed by a two-byte `selector`. It preserves storage, not selector mapping or a flat pointer. Helper prototypes declare qualified preservation/clobbers, but do not calculate all changed registers, exact copy/fill memory effects, faults or arbitrary frame aliases. Shared helper bytes do not elect an exclusive compiler release or historical spelling.
 
-The prototype preserves the established saved/untouched registers. It declares `ES`, `CX`, `DF`, and arithmetic flags clobbered rather than incorrectly preserved. Clobber declarations do not calculate post-call values or express the helper's copy memory effects. There is no semantic copy callfixup in this increment.
+### Provenance and debug structure
 
-## Build
+`NE relocation provenance (qualified 16-bit)` adds EOL comments relating native relocation raw fields, chain heads, individual applications, original/current bytes and uniquely qualified instruction operand masks. It does not add reference edges, infer runtime binding or repair the native loader's remaining unsupported-type/additive limitations.
 
-Use JDK 21 and the Ghidra 12.1.4 installation. The validated build used Gradle 9.7.1; the selected Ghidra distribution declares a minimum Gradle version of 8.5. Set `JAVA_HOME` and `GHIDRA_INSTALL_DIR` to those local installations. From the enclosing Ghidra fork root, enter `extensions/ghidra-legacy-toolchains/` before running Gradle. The module-local `settings.gradle` establishes the independent build boundary and retains project name `ghidra-legacy-toolchains`; do not run the parent Ghidra build for this extension.
+`NB02 initial/footer structure` observes complete 16-byte initial-shaped records and terminal eight-byte footers in original `FileBytes`, including the qualified retained-end-minus-distance relation. Reports live in Program Information options with prefix `Legacy toolchains NB02 structure.FileBytes `. Mapped records can receive comments; unmapped records remain file observations, with no invented memory. This is not a complete debug-directory, symbol or type parser, nor evidence that other debug information was removed or absent.
+
+## Build a matching runtime and extension
+
+The integrated target is this fork's Ghidra 12.3 DEV with JDK 25. Private build evidence used JDK 25.0.2 and Gradle 9.7.1. Ghidra 12.1.4/JDK 21 evidence belongs to the historical first increment, not the current compatibility target.
+
+Build the matching fork distribution first using Ghidra's native dependency/build machinery; see the fork's [Developer Guide](../../../DevGuide.md). From a prepared source root, `gradle assembleAll` produces an unpacked native distribution under `build/dist/`. Native dependencies and platform toolchains are prerequisites. A task-private source export keeps native outputs away from the working source tree. Do not substitute a changed 12.3 decompiler executable into a 12.1.4 distribution.
+
+Export `JAVA_HOME` for JDK 25 and `GHIDRA_INSTALL_DIR` for that matching distribution. Then build the standalone extension, not a new root-build module:
 
 ```bash
 cd extensions/ghidra-legacy-toolchains
-work=$(mktemp -d "$HOME/.cache/codex/ghidra-legacy-toolchains-build-XXXXXX")
+mkdir -p "$HOME/.cache/codex"
+work=$(mktemp -d "$HOME/.cache/codex/ghidra-legacy-toolchains-XXXXXX")
 mkdir -p "$work"/{tmp,home,config,cache,data,prefs/user,prefs/system}
-export HOME="$work/home"
-export TMPDIR="$work/tmp"
-export XDG_CONFIG_HOME="$work/config"
-export XDG_CACHE_HOME="$work/cache"
-export XDG_DATA_HOME="$work/data"
+export HOME="$work/home" TMPDIR="$work/tmp"
+export XDG_CONFIG_HOME="$work/config" XDG_CACHE_HOME="$work/cache" XDG_DATA_HOME="$work/data"
 export GRADLE_USER_HOME="$work/gradle-home"
 export JAVA_TOOL_OPTIONS="-Duser.home=$HOME -Djava.io.tmpdir=$TMPDIR -Djava.util.prefs.userRoot=$work/prefs/user -Djava.util.prefs.systemRoot=$work/prefs/system"
 gradle --no-daemon --project-cache-dir "$work/project-cache" -PbuildOutputDir="$work/build" buildExtension
 ```
 
-The native extension ZIP is written under `$work/build/dist/`. The build uses the selected installation's `support/buildExtension.gradle`; it does not vendor or rebuild Ghidra. No system installation is part of the build. `buildOutputDir` also redirects the native dependency-copy, source-archive, and ZIP outputs.
+The extension uses the selected distribution's `support/buildExtension.gradle`. `buildOutputDir` redirects dependency-copy, source-archive and extension ZIP outputs; the ZIP is under `$work/build/dist/`. Building the extension does not rebuild or patch Ghidra itself, and does not install anything globally.
 
-## Load without changing the Ghidra installation
+## Load in a private native process
 
-Unpack the extension ZIP into a task-owned directory. The unpacked `ghidra-legacy-toolchains` directory contains `Module.manifest`, `extension.properties`, `data/`, `lib/`, and `ghidra_scripts/`.
-
-For native headless analysis, supply the unpacked module through the supported JVM property:
+Keep the private environment above. Set `extension_zip` to the freshly built ZIP, then unpack it into the private 12.3 settings tree:
 
 ```bash
-export GHIDRA_HEADLESS_JAVA_OPTIONS="-Dghidra.external.modules=$module -Dapplication.settingsdir=$work/settings -Dapplication.cachedir=$work/cache -Duser.home=$work/home -Djava.io.tmpdir=$work/tmp"
+mkdir -p "$XDG_CONFIG_HOME/lucas-ghidra/ghidra_12.3_DEV/Extensions"
+unzip "$extension_zip" -d "$XDG_CONFIG_HOME/lucas-ghidra/ghidra_12.3_DEV/Extensions"
+module="$XDG_CONFIG_HOME/lucas-ghidra/ghidra_12.3_DEV/Extensions/ghidra-legacy-toolchains"
 ```
 
-Set `module` to the unpacked module directory and create the named private directories before launch. Also direct `HOME`, `TMPDIR`, XDG configuration/cache/data, and Java preferences to task-owned locations. This is the loading route validated here; GUI installation was not tested. Load the Java extension at process startup rather than assuming an already-running Ghidra instance will discover new classes.
+The module contains `Module.manifest`, `extension.properties`, `data/`, `lib/` and `ghidra_scripts/`. This private native headless installation is the current loading route; GUI installation has not been tested. After rebuilding, use a fresh private configuration/cache tree and install the new ZIP there: source-ZIP timestamps can otherwise leave stale OSGi script classes. Restart Ghidra after extension or native-core changes; changing files under a running process is insufficient.
 
-Ghidra 12.1.4 rejects a project path with a dot-prefixed component. When actual project files are under a dot-prefixed cache directory, native analysis requires a task-owned nonhidden path alias to that exact directory. The historical validation used such an alias; it is not part of this module and is not needed for the Gradle build. The alias does not move original inputs or change their bytes.
+Import originals with native `MzLoader` or `NeLoader` detection and leave native analysis enabled. The fork's MZ parsed-header correction is required for ordinary BCC 2.0 import; no alternate loader or executable format is introduced. Do not force a raw-binary import to select a profile. Helper priorities follow the generic segmented calling-convention pass so that it does not overwrite their more specific frame contracts.
 
-Import NE inputs through `NeLoader`, keep native analysis enabled, and retain the analyzer's default enablement. Its priority follows Ghidra's generic segmented calling-convention pass; otherwise that pass overwrites the helper-specific convention based on `RETF` alone.
+For a project parent under a dot-prefixed cache path, keep a directory descriptor open in the launching shell and pass `/proc/$$/fd/9` to `analyzeHeadless`. This Linux route avoids Ghidra's hidden-project-path rejection without creating an outside-cache symlink; the descriptor path is valid only while that shell remains alive. See the [focused validation command](validation.md#focused-native-checks).
 
 ## Consume through the existing MCP
 
-The extension adds no MCP endpoint. Load the same module in the Ghidra process served by the existing bridge. When using the MCP project's standalone Java headless entrypoint, include the extension's `lib/ghidra-legacy-toolchains.jar` on that process's classpath and set `ghidra.external.modules` to its unpacked module directory. Use the MCP project's own launcher/build procedure; this extension adds no second server or transport.
+The extension adds no MCP endpoint or transport. The existing `.refs/ghidra-mcp` 7.0.0 owner supplies the native headless entrypoint and stdio bridge. Its current `ServiceUtils.decoderOf` references a SLEIGH class/accessor absent from this 12.3 SDK, so tested `get_functions` requests for C fail even though native analysis and save succeed. That MCP consumer must be aligned with the selected SDK before the C-query integration can pass; this checkpoint does not modify the MCP. Earlier 12.1.4 MCP proof is historical only. The existing standalone launch route uses matching Ghidra jars, the extension JAR on the classpath and `ghidra.external.modules` pointing to the unpacked module.
 
-Use an explicit program project path on every operation. The validated sequence was:
+Before discovery, inspect existing UDS candidates outside the private tree. The bridge scans all candidates and may remove stale sockets, so private XDG variables or a supplied URL alone do not isolate it. Do not touch another instance; verify the exact private PID, socket, project and program before analysis, script execution or save.
 
-1. Perform MCP `initialize` and `tools/list`; inspect `list_instances` to verify the exact private PID, socket, project, and program.
+1. Initialize MCP, inspect `tools/list` and verify `list_instances` identity. Supply an explicit program project path on each program operation.
 
-2. Call `run_analysis` with `program`. This initializes native analysis options and runs the installed analyzer. Immediately after opening a saved program, `list_analyzers` can be empty until options are initialized; an empty list alone does not prove the extension is missing.
+2. Use `run_analysis` with `program`, then `list_analyzers` to inspect the enabled analyzer names above. An immediately opened program can have an empty analyzer list until native options are initialized; that alone does not prove the extension is absent.
 
-3. Call `list_analyzers` and verify that `Borland F_SCOPY (qualified 16-bit)` is enabled.
+3. After resolving the current MCP API blocker, read native contracts and the C view through `get_functions`, selecting `signature,parameters,decompiled_code` in `fields`. Inspect types with the existing type operations when needed.
 
-4. Read the helper through `get_functions` with `fields` including `signature,parameters`. Read `FarAddress16` through `get_type_size` when its layout size is needed.
+4. The existing `run_ghidra_script` schema accepts the installed script's absolute path in `script_name` and whitespace-separated `args`. It requires `GHIDRA_MCP_ALLOW_SCRIPTS=1`; argument paths must not contain spaces. NB02's custom options need a script observation rather than the bridge's ordinary program metadata dictionary. Current 12.3 script execution through MCP remains unverified.
 
-5. Call `save_program` after analysis changes and re-read the function to verify saved state.
+5. Call `save_program` after changes and re-read the saved native results. Analysis and validator scripts mutate Programs: use a task-owned project, not an existing user's analysis project.
 
-For the qualified SimTower validation program, the observed helper address was `1000:3dc9`. That is an imported coordinate, not a universal address for other imports.
-
-`ValidateFScopy.java` is a focused native integration check for this exact SimTower input and its three original caller sites. It is not a general-purpose script for arbitrary binaries. After native analysis, run it with one existing output-directory argument. It checks the production analyzer's result, rerun stability, storage/cleanup/preservation, and actual caller HighFunction inputs. The success marker is `F_SCOPY VALIDATION PASS`; headless exit status alone is insufficient because native analyzer/script errors can coexist with exit zero.
-
-The existing `run_ghidra_script` MCP operation can run the installed script by absolute path with that output directory in `args`. It requires `GHIDRA_MCP_ALLOW_SCRIPTS=1` on the MCP server. The current bridge splits arguments on whitespace, so use an output path without spaces. This operation executed the same native assertions successfully in the integration run.
-
-Keep these bridge boundaries explicit:
-
-- An explicit `language` in the inspected MCP import implementation selects raw-binary import. Do not use it as a compiler-profile override while expecting NE loader semantics.
-
-- `get_function_pcode` returns `HighFunction` operations, including in its `basic` mode. It is not an instruction-level `Instruction.getPcode()` export.
-
-- The bridge searches UDS candidates before a TCP fallback and can remove stale sockets. A supplied URL alone does not establish target identity. The validated instance used task-private UDS state, verified absent outside candidates, and no TCP listener.
-
-- Re-analysis is a Program mutation. The validation modified only its task-owned project; it did not change originals or an existing user's analysis project.
+An explicit MCP import `language` selects the raw-binary loader; it is not an NE profile override. `get_function_pcode`, including `basic` mode, returns HighFunction operations, not raw `Instruction.getPcode()` output. Use native scripts when instruction-level p-code or file provenance is required. Detailed bridge startup and transport behavior remain owned by the MCP project.
 
 ## Semantic limits
 
-Do not treat the emitted C as segment-faithful reconstruction. The actual helper C dereferences the offset components without preserving the selector-dependent memory expressions. The separate TLINK writer probe likewise retains dynamic segment operations in HighFunction while the C view omits selector operands. Use native instruction/p-code evidence for those dependencies.
+The fork's native decompiler emits address-valued typed segment operations with selector and offset dependencies in the C view. This is analysis syntax, not historical source C, guaranteed host-compilable C, a runtime selector resolver or proof that every segmented-memory operation is represented faithfully. Inspect raw instruction p-code, HighFunction and the original bytes alongside C. The demonstrated fill-wrapper call now uses actual selector-qualified argument reads rather than unrelated abstract stack inputs; this is not general store forwarding or validation of arbitrary segmented call forms. The remaining MCP C-query blocker is recorded in [validation status](validation.md#current-integration-status).
 
-The TLINK probe showed that explicit analysis-only return storage can expose CF and additional register results, with a known near-return stack model. That experiment is not an automatically applied writer model, a recovered historical return type, or proof of caller propagation. See the [validation summary and historical report locator](validation.md) for the exact boundary.
-
-This extension does not replace the original-byte reconstruction, compilation, and comparison cycle. Other runtime helpers, full memory-model support, precise copy side effects, whole-game recovery, and historical producer selection are outside this first increment.
+The extension does not replace original-byte reconstruction, compilation and comparison. No full corpus, complete ABI/transitive runtime model, original compiler/linker/game execution, general Real Mode execution, whole-game recovery or complete memory-model support is claimed.

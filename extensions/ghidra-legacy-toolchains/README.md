@@ -1,13 +1,13 @@
 # Ghidra Legacy Toolchains
 
-An independent Ghidra extension that turns qualified legacy-toolchain evidence into native analysis. The first increment recognizes the shared Borland `F_SCOPY` helper and models its implicit `CX` input, far-address argument storage, and far-return cleanup.
+Native Ghidra analysis for qualified 16-bit Borland tool images and runtime correspondences. The extension applies exact-image profiles for BCC 2.0/3.1/4.5, TASM 3.1 and TLINK 4.01/5.1, plus supplied SCRANTIC and SimTower runtime profiles. Complete-body helper recognition, NE relocation provenance and NB02 structural observations complement those profiles.
 
-The extension is versioned in this Ghidra fork at `extensions/ghidra-legacy-toolchains/`. Its module-local `settings.gradle` retains a standalone installed-Ghidra build; it is not included in the fork's Ghidra source build and requires no nested Git repository.
+The active source owner is `extensions/ghidra-legacy-toolchains/` in this fork. Its module-local `settings.gradle` retains a standalone installed-Ghidra extension build; it is not wired into the fork's root build. The integrated result also requires this fork's native decompiler changes and MZ loader correction, so build a matching Ghidra 12.3 DEV distribution with JDK 25 before packaging the extension against it.
 
-Validated with Ghidra 12.1.4 and the existing Ghidra MCP 7.0.0 bridge. No Ghidra or MCP source patch is required. Far-address records are analysis representations, not recovered historical C types; emitted C is not a faithful representation of all segmented-memory operations.
+Profiles qualify retained original `FileBytes`, not filenames or relocated-memory hashes. Analysis names, partial layouts, register tuples and far-address records are not recovered historical C declarations or proof of a program's producer. The fork's C view exposes typed selector/offset address expressions, not runtime selector resolution or host-compilable historical source. All eight native profiles pass automatic validation and the demonstrated call-argument regression is corrected. Existing MCP 7.0.0 analysis/save works, but its C-query path is blocked by an incompatible SLEIGH API reference on 12.3. Completion review remains pending. See the current [validation status](docs/validation.md).
 
 - [Build and use](docs/usage.md)
 
 - [Validation boundaries](docs/usage.md#semantic-limits)
 
-- [Placement/build validation and prior behavior evidence](docs/validation.md)
+- [Validation commands, evidence and remaining proof gaps](docs/validation.md)

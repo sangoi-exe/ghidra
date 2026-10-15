@@ -1,0 +1,38 @@
+<!-- Analysis model for the qualified 38-byte body, not a general Borland or host-pointer ABI. -->
+<prototype name="borland_far_copy_16far" extrapop="4" stackshift="4">
+  <input>
+    <pentry minsize="4" maxsize="4"><addr offset="4" space="stack"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr offset="8" space="stack"/></pentry>
+    <pentry minsize="2" maxsize="2"><addr offset="12" space="stack"/></pentry>
+  </input>
+  <output>
+    <!-- Native join anchoring; matched functions explicitly return the full four-byte record. -->
+    <pentry minsize="2" maxsize="2"><register name="AX"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr space="join" piece1="DX" piece2="AX"/></pentry>
+  </output>
+  <!-- These are low-16-bit preservation claims for ordinary intact-frame completion. -->
+  <unaffected>
+    <register name="BX"/>
+    <register name="SP"/>
+    <register name="BP"/>
+    <register name="SI"/>
+    <register name="DI"/>
+    <register name="DS"/>
+    <register name="SS"/>
+    <register name="CS"/>
+  </unaffected>
+  <!-- This does not compute CX=0, ES, DF=0, count-parity CF, or DEC BP flags. -->
+  <killedbycall>
+    <register name="AX"/>
+    <register name="DX"/>
+    <register name="CX"/>
+    <register name="ES"/>
+    <register name="DF"/>
+    <register name="CF"/>
+    <register name="PF"/>
+    <register name="AF"/>
+    <register name="ZF"/>
+    <register name="SF"/>
+    <register name="OF"/>
+  </killedbycall>
+</prototype>

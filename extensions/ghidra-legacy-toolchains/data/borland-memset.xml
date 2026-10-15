@@ -1,0 +1,35 @@
+<!-- Analysis model for this complete wrapper with its separately qualified internal target. -->
+<prototype name="borland_memset_16far" extrapop="4" stackshift="4">
+  <input>
+    <pentry minsize="2" maxsize="2"><addr offset="4" space="stack"/></pentry>
+    <pentry minsize="2" maxsize="2"><addr offset="6" space="stack"/></pentry>
+    <pentry minsize="2" maxsize="2"><addr offset="8" space="stack"/></pentry>
+  </input>
+  <!-- Current SI is moved to AX before restoring SI; a WORD, never a host pointer. -->
+  <output><pentry minsize="2" maxsize="2"><register name="AX"/></pentry></output>
+  <!-- Conditional on the evidenced inner body and ordinary intact frames/accesses. -->
+  <unaffected>
+    <register name="BX"/>
+    <register name="DX"/>
+    <register name="SP"/>
+    <register name="BP"/>
+    <register name="SI"/>
+    <register name="DI"/>
+    <register name="DS"/>
+    <register name="SS"/>
+    <register name="CS"/>
+  </unaffected>
+  <!-- Does not compute current-SI AX, CX=0, ES=DS, DF=0, ADD/DEC flags, or fill effects. -->
+  <killedbycall>
+    <register name="AX"/>
+    <register name="CX"/>
+    <register name="ES"/>
+    <register name="DF"/>
+    <register name="CF"/>
+    <register name="PF"/>
+    <register name="AF"/>
+    <register name="ZF"/>
+    <register name="SF"/>
+    <register name="OF"/>
+  </killedbycall>
+</prototype>

@@ -1,0 +1,38 @@
+<!-- Exact qualified F_PCMP body only; native analysis tuple, not historical C or flat-pointer equality. -->
+<prototype name="borland_far_pointer_compare_16far" extrapop="4" stackshift="4">
+  <input>
+    <pentry minsize="2" maxsize="2"><register name="AX"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr space="join" piece1="DX" piece2="AX"/></pentry>
+    <pentry minsize="2" maxsize="2"><register name="BX"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr space="join" piece1="CX" piece2="BX"/></pentry>
+  </input>
+  <output>
+    <!-- Native ParamEntry joins must overlap a preceding storage entry. -->
+    <pentry minsize="1" maxsize="1"><register name="ZF"/></pentry>
+    <pentry minsize="9" maxsize="9"><addr space="join" piece1="CX" piece2="BX" piece3="DX" piece4="AX" piece5="ZF"/></pentry>
+  </output>
+  <unaffected>
+    <register name="SP"/>
+    <register name="BP"/>
+    <register name="SI"/>
+    <register name="DI"/>
+    <register name="DS"/>
+    <register name="ES"/>
+    <register name="SS"/>
+    <register name="CS"/>
+    <register name="DF"/>
+  </unaffected>
+  <!-- Full body computes the selected CMP flags; this prototype retains only consumed ZF. -->
+  <killedbycall>
+    <register name="AX"/>
+    <register name="DX"/>
+    <register name="BX"/>
+    <register name="CX"/>
+    <register name="CF"/>
+    <register name="PF"/>
+    <register name="AF"/>
+    <register name="ZF"/>
+    <register name="SF"/>
+    <register name="OF"/>
+  </killedbycall>
+</prototype>

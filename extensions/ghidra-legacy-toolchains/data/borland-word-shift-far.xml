@@ -1,0 +1,37 @@
+<!-- Complete qualified DX:AX/CL far cores, not a general Borland ABI or an out-of-range shift fixup. -->
+<prototype name="borland_word_shift_16far" extrapop="4" stackshift="4">
+  <input>
+    <!-- Native least-significant-piece anchor; functions explicitly use the full join. -->
+    <pentry minsize="2" maxsize="2"><register name="AX"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr space="join" piece1="DX" piece2="AX"/></pentry>
+    <pentry minsize="1" maxsize="1"><register name="CL"/></pentry>
+  </input>
+  <output>
+    <pentry minsize="2" maxsize="2"><register name="AX"/></pentry>
+    <pentry minsize="4" maxsize="4"><addr space="join" piece1="DX" piece2="AX"/></pentry>
+  </output>
+  <unaffected>
+    <register name="CH"/>
+    <register name="BP"/>
+    <register name="SI"/>
+    <register name="DI"/>
+    <register name="DS"/>
+    <register name="ES"/>
+    <register name="SS"/>
+    <register name="CS"/>
+    <register name="SP"/>
+  </unaffected>
+  <!-- CL's path-local final value is documented, not computed by this prototype. -->
+  <killedbycall>
+    <register name="AX"/>
+    <register name="DX"/>
+    <register name="BX"/>
+    <register name="CL"/>
+    <register name="CF"/>
+    <register name="PF"/>
+    <register name="AF"/>
+    <register name="ZF"/>
+    <register name="SF"/>
+    <register name="OF"/>
+  </killedbycall>
+</prototype>
