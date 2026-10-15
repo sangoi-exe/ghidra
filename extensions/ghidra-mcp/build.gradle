@@ -126,6 +126,7 @@ processResources {
             line
                 .replace('${project.version}',  project.version.toString())
                 .replace('${ghidra.version}',   ghidraVersion ?: 'unknown')
+                .replace('${maven.compiler.release}', pomText('maven.compiler.release'))
                 .replace('${build.timestamp}',  buildTimestamp)
                 .replace('${build.number}',     buildTimestamp)
         }

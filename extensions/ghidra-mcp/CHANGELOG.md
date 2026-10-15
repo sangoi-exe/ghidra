@@ -6,6 +6,7 @@ Complete version history for the Ghidra MCP Server project.
 
 - Imported upstream 7.0.0 at `cf8b12db27eb139b28b90eaa3488306da910d759` as an independent in-repository extension/bridge, retaining Apache-2.0 licensing and attribution.
 - Target Ghidra 12.3 DEV and JDK 25 in the POM and active build/setup followers; permit an external Gradle `buildOutputDir` without parent-build integration.
+- Derive packaged `java.version` metadata from the POM's compiler release through the existing Gradle/Maven resource filtering, rather than retaining the upstream literal Java 21 value.
 - Read SLEIGH decoder paths through `ghidra.app.plugin.processors.sleigh.SleighLanguageDescription.getLanguageFile().getSlaFile()` and use the 12.3 `DataTypeManager.remove(DataType)` API. Protocol and variant-selection behavior are unchanged.
 - Exclude upstream-only CI/Docker/editor/agent automation and its exclusive tests; localize mixed documentation inventories to delivered product files. Historical upstream documentation below and under `docs/` is retained as reference, not a downstream deployment support claim.
 - Validate the port with the matching SDK, selected real-SDK Java tests and 1,095 Python unit tests (nine platform skips). A fresh private headless instance using the copied stdio bridge returns C for the same SCRANTIC, TLINK5.1 and SIMTOWER requests that failed before the API port. This does not establish GUI, Maven, debugger/BSim, script-execution or all-endpoint coverage.
