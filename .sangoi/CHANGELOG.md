@@ -1,6 +1,6 @@
 # Local fork changelog
 
-## In progress — integrated toolchain analysis and segmented C
+## Unreleased — integrated toolchain analysis and segmented C
 
 - Record the previous Johnny/SimTower commit-screening limits and useful evidence in [the local commit-frontier report](reports/2026-10-15-re-commit-frontier.md). Screen19/22 subsequent local subjects at fixed tips, distinguish selected semantic review from subject coverage, and retain new helper/profile candidates without automatically adding them to implementation Scope.
 
@@ -10,7 +10,7 @@
 
 - Correct selector-dependent C and actual segmented call-argument reads in the decompiler. Explicit compiler-stack selector metadata now replaces the CALL-local STORE inference, including the reproduced JMP/CALL_RETURN case. Native units209/209, focused data assertions92/92 and two actual Java/native integration tests pass; synthetic bookkeeping stays offset-only. The earlier native MZ correction retains its four-test and ordinary BCC2.0-import proof.
 
-- Build matching Ghidra12.3 DEV and both extensions without global installation. The in-repository MCP copy retains upstream layout/license and localized API/build adaptations. Its unchanged earlier selected Java/Python unit proof remains bounded to that source. Fresh copied-bridge analysis, all three exact C queries and saves pass again on the corrected SDK; all five returned C strings equal the prior successful port results. Both canonical extension packages build against that SDK with unchanged runtime payloads apart from generated MCP build timestamps. The prior accumulated Code Gate's `DO_NOT_PROCEED` is retained honestly; the user-selected correction is implemented and validated, awaiting the freshly selected local Code Gate. No completion review pass or remote push is claimed.
+- Build matching Ghidra12.3 DEV and both extensions without global installation. The in-repository MCP copy retains upstream layout/license and localized API/build adaptations. Its unchanged earlier selected Java/Python unit proof remains bounded to that source. Fresh copied-bridge analysis, all three exact C queries and saves pass again on the corrected SDK; all five returned C strings equal the prior successful port results. Both canonical extension packages build against that SDK with unchanged runtime payloads apart from generated MCP build timestamps. The final local Code Gate returned `PROCEED` for candidate `a8e12c3925285a287d955ded2516691061e9aa09`, with complete correction/follower coverage and closure of the earlier regression. The earlier `DO_NOT_PROCEED` remains historical truth. No remote push or global deployment occurred.
 
 ## Unreleased — extension placement correction
 
