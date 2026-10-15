@@ -1,5 +1,11 @@
 # Local fork changelog
 
+## Planned — integrated toolchain analysis and segmented C
+
+- Record the user-confirmed single-delivery expansion: qualified compiler/tool profiles, runtime helpers, call/reference analysis, structural NB02 recognition and necessary decompiler-core corrections for segmented-memory C expressions.
+
+- Record local Intent Contract audit `PROCEED`, with no material findings. Implementation is on hold for the later execution authorization. No feature code or runtime result is delivered by this planning entry.
+
 ## Unreleased — extension placement correction
 
 - Version the validated legacy-toolchain extension under `extensions/ghidra-legacy-toolchains/` in this fork instead of requiring a separate repository.
