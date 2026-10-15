@@ -253,10 +253,7 @@ public:
 ///    - the \b base or \b segment and
 ///    - the high-level \b near pointer
 ///
-/// High-level analysis can ignore the base/segment and any
-/// normalization on the near pointer.
-/// Emitted expressions involving \b this segment op prints only the \b near portion.
-/// Data-type information propagates only through this high-level side.
+/// Data-type information propagates through the high-level near pointer. Emitted C address expressions retain both the base/segment and the near portion; a LOAD or STORE dereferences the resulting address.
 ///
 /// The decompiler looks for the term-tree defined in SegmentOp
 /// and replaces it with the SEGMENTOP operator in any p-code it analyzes.

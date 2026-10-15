@@ -4792,7 +4792,7 @@ void FuncCallSpecs::createPlaceholder(Funcdata &data,AddrSpace *spacebase)
 
 {
   int4 slot = op->numInput();
-  Varnode *loadval = data.opStackLoad(spacebase,0,1,op,(Varnode *)0,false);
+  Varnode *loadval = data.opStackLoad(spacebase,0,1,op,(Varnode *)0,false,true);
   data.opInsertInput(op,loadval,slot);
   setStackPlaceholderSlot(slot);
   loadval->setSpacebasePlaceholder();
@@ -5133,7 +5133,9 @@ void FuncCallSpecs::commitNewInputs(Funcdata &data,vector<Varnode *> &newinput)
     newinput[1+i] = vn;
     activeinput.registerTrial(param->getAddress(),param->getSize());
     activeinput.getTrial(i).markActive(); // Parameter is not optional
-    if (noplacehold&&(param->getAddress().getSpace()->getType() == IPTR_SPACEBASE)) {
+    AddrSpace *paramSpace = param->getAddress().getSpace();
+    if (noplacehold && paramSpace->getType() == IPTR_SPACEBASE &&
+        data.getArch()->userops.getSegmentOp(paramSpace->getContain()->getIndex()) == (SegmentOp *)0) {
       // We have a locked stack parameter, use it to recover the stack offset
       vn->setSpacebasePlaceholder();
       noplacehold = false;	// Only set this on the first parameter

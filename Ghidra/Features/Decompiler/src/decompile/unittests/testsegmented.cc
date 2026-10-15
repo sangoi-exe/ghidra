@@ -181,4 +181,71 @@ TEST(segmented_member_address) {
   ASSERT(text.find("->second)") != string::npos);
 }
 
+TEST(segmented_call_arguments) {
+  SegmentedEnvironment env;
+  AddrSpace *stack = env.arch->getStackSpace();
+  SegmentOp *segdef = env.arch->userops.getSegmentOp(stack->getContain()->getIndex());
+  Datatype *addressType = env.arch->types->getBase(4,TYPE_UNKNOWN);
+  const VarnodeData &ss(env.arch->translate->getRegister("SS"));
+  const VarnodeData &sp(stack->getSpacebase(0));
+  PcodeOp *rawSegment = env.op(CPUI_CALLOTHER,{env.constant(4,segdef->getIndex()),env.fd->newVarnode(2,ss.getAddr()),env.fd->newVarnode(2,sp.getAddr())},addressType);
+  // As in the real CALL's raw p-code, the STORE input initially has no SSA definition.
+  PcodeOp *store = env.op(CPUI_STORE,{env.fd->newVarnodeSpace(stack->getContain()),env.fd->newVarnode(4,rawSegment->getOut()->getAddr()),env.constant(2,0x1003)});
+  PcodeOp *call = env.op(CPUI_CALL,{env.fd->newVarnode(4,Address(stack->getContain(),0x2000))});
+  ASSERT(!store->getIn(1)->isWritten());
+  for(int4 displacement=4;displacement<=8;displacement+=2) {
+    Varnode *value = env.fd->opStackLoad(stack,displacement,2,call,(Varnode *)0,false);
+    PcodeOp *load = value->getDef();
+    PcodeOp *segment = load->getIn(1)->getDef();
+    ASSERT_EQUALS(load->code(),CPUI_LOAD);
+    ASSERT_EQUALS(value->getSize(),2);
+    ASSERT_EQUALS(load->getIn(1)->getSize(),4);
+    ASSERT_EQUALS(segment->code(),CPUI_SEGMENTOP);
+    ASSERT_EQUALS(segment->getIn(1)->getAddr(),ss.getAddr());
+    ASSERT_EQUALS(segment->getIn(2)->getSize(),2);
+    ASSERT_EQUALS(segment->getIn(2)->getDef()->getIn(1)->getOffset(),displacement);
+  }
+  Varnode *wrapped = env.fd->opStackLoad(stack,4,2,call,env.constant(2,0xfffe),false);
+  PcodeOp *nearAdd = wrapped->getDef()->getIn(1)->getDef()->getIn(2)->getDef();
+  RuleCollapseConstants collapse("base");
+  ASSERT_EQUALS(nearAdd->getOut()->getSize(),2);
+  ASSERT_EQUALS(collapse.applyOp(nearAdd,*env.fd),1);
+  ASSERT_EQUALS(nearAdd->getIn(0)->getOffset(),2);
+
+  // Exercise the same domain after linking, through late locked-prototype reconstruction.
+  Varnode *selector = env.fd->setInputVarnode(env.fd->newVarnode(2,ss.getAddr()));
+  env.fd->opSetOpcode(rawSegment,CPUI_SEGMENTOP);
+  env.fd->opSetInput(rawSegment,env.fd->newVarnodeSpace(stack->getContain()),0);
+  env.fd->opSetInput(rawSegment,selector,1);
+  env.fd->opSetInput(rawSegment,env.fd->constructSpacebaseInput(stack),2);
+  env.fd->opSetInput(store,rawSegment->getOut(),1);
+  FuncCallSpecs spec(call);
+  spec.setInternal(env.arch->getModel("__cdecl16far"),env.arch->types->getTypeVoid());
+  spec.initActiveInput();
+  spec.createPlaceholder(*env.fd,stack);
+  Varnode *placeholder = call->getIn(spec.getStackPlaceholderSlot());
+  Varnode *stackref = placeholder->getDef()->getIn(1);
+  ASSERT_EQUALS(stackref->getSize(),2);
+  ASSERT_EQUALS(stackref->getDef()->code(),CPUI_INT_ADD);
+  istringstream declaration("void __cdecl16far late_fill(uint2 destination,uint2 count,uint2 value);");
+  PrototypePieces pieces;
+  parse_protopieces(pieces,declaration,env.arch);
+  FuncProto prototype;
+  prototype.setInternal(pieces.model,env.arch->types->getTypeVoid());
+  prototype.setPieces(pieces);
+  spec.forceSet(*env.fd,prototype);
+  ASSERT_EQUALS(call->numInput(),5);
+  ASSERT_EQUALS(spec.getStackPlaceholderSlot(),4);
+  ASSERT_EQUALS(call->getIn(4),placeholder);
+  for(int4 slot=1;slot<=3;++slot) {
+    Varnode *argument = call->getIn(slot);
+    ASSERT(!argument->isSpacebasePlaceholder());
+    PcodeOp *segment = argument->getDef()->getIn(1)->getDef();
+    ASSERT_EQUALS(segment->code(),CPUI_SEGMENTOP);
+    ASSERT_EQUALS(segment->getIn(1),selector);
+    ASSERT_EQUALS(segment->getIn(2)->getSize(),2);
+    ASSERT_EQUALS(segment->getIn(2)->getDef()->getIn(0),stackref);
+  }
+}
+
 } // End namespace ghidra

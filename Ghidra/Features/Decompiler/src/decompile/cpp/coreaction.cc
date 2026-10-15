@@ -1560,6 +1560,8 @@ void ActionFuncLink::funcLinkInput(FuncCallSpecs *fc,Funcdata &data)
     PcodeOp *op = fc->getOp();
     int4 numparam = fc->numParams();
     bool setplaceholder = varargs;
+    if (spacebase != (AddrSpace *)0 && data.getArch()->userops.getSegmentOp(spacebase->getContain()->getIndex()) != (SegmentOp *)0)
+      setplaceholder = true;	// Keep offset bookkeeping separate from selector-qualified arguments
     for(int4 i=0;i<numparam;++i) {
       ProtoParameter *param = fc->getParam(i);
       if (!param->hasStorage()) continue;
