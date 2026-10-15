@@ -63,6 +63,7 @@ public class BasicCompilerSpec implements CompilerSpec {
 	protected PrototypeModel[] allmodels;			// All models
 	protected PrototypeModel[] models;				// All models excluding merge models
 	private Register stackPointer;		// Register holding the stack pointer
+	private Register stackSegment;		// Optional register holding the stack segment selector
 	private AddressSpace stackSpace;
 	private AddressSpace stackBaseSpace;
 	private AddressSpace joinSpace;
@@ -189,6 +190,7 @@ public class BasicCompilerSpec implements CompilerSpec {
 		stackBaseSpace = op2.stackBaseSpace;
 		stackGrowsNegative = op2.stackGrowsNegative;
 		stackPointer = op2.stackPointer;	// Register is immutable
+		stackSegment = op2.stackSegment;	// Register is immutable
 		stackSpace = op2.stackSpace;
 		aggressiveTrim = op2.aggressiveTrim;
 		preferSplit = op2.preferSplit;	// immutable set
@@ -526,6 +528,9 @@ public class BasicCompilerSpec implements CompilerSpec {
 		if (stackPointer != null) {
 			encoder.openElement(ELEM_STACKPOINTER);
 			encoder.writeString(ATTRIB_REGISTER, stackPointer.getName());
+			if (stackSegment != null) {
+				encoder.writeString(ATTRIB_SEGMENTREGISTER, stackSegment.getName());
+			}
 			encoder.writeSpace(ATTRIB_SPACE, stackBaseSpace);
 			if (reverseJustifyStack) {
 				encoder.writeBool(ATTRIB_REVERSEJUSTIFY, reverseJustifyStack);
@@ -984,6 +989,13 @@ public class BasicCompilerSpec implements CompilerSpec {
 		if (stackPointer == null) {
 			throw new SleighException("Unknown register: " + regName);
 		}
+		String segmentRegName = el.getAttribute("segmentregister");
+		if (segmentRegName != null) {
+			stackSegment = language.getRegister(segmentRegName);
+			if (stackSegment == null) {
+				throw new SleighException("Unknown register: " + segmentRegName);
+			}
+		}
 		String baseSpaceName = el.getAttribute("space");
 		stackBaseSpace = getAddressSpace(baseSpaceName);
 		if (stackBaseSpace == null) {
@@ -1294,6 +1306,9 @@ public class BasicCompilerSpec implements CompilerSpec {
 			return false;
 		}
 		if (!SystemUtilities.isEqual(stackPointer, other.stackPointer)) {
+			return false;
+		}
+		if (!SystemUtilities.isEqual(stackSegment, other.stackSegment)) {
 			return false;
 		}
 		return true;

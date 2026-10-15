@@ -184,6 +184,9 @@
         <optional>
           <element name="stackpointer">
             <attribute name="register"/>
+            <optional>
+              <attribute name="segmentregister"/>
+            </optional>
             <attribute name="space"/>
             <optional>
               <attribute name="growth">

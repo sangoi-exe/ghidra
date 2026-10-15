@@ -1159,6 +1159,11 @@ that this is not possible for the marked registers.
   <td>Name of register to use as stack pointer</td>
 </tr>
 <tr>
+  <td align='right'><code>segmentregister</code></td>
+  <td/>
+  <td>(Optional) Name of register holding the stack segment selector</td>
+</tr>
+<tr>
   <td align='right'><code>space</code></td>
   <td/>
   <td>Address space that will hold the <emphasis>stack</emphasis></td>
@@ -1187,6 +1192,9 @@ space exists virtually for each function being analyzed where offsets
 are calculated relative to the incoming value of this register.  This provides
 a <emphasis>concrete</emphasis> storage location for a function's local variables
 even though the true location is dynamically determined.
+</para>
+<para>
+For a segmented stack, <code>segmentregister</code> identifies the register holding the selector, for example <code>SS</code> alongside <code>register="SP"</code> on x86-16. Actual call-argument reads use this register's current value at the call, with offset arithmetic performed at the stack-pointer width before constructing the segmented address. The declaration specifies register identity, not a numeric selector, a constant value, or a selector-to-address resolution. It requires a two-input segment operation for the containing address space. Synthetic stack-offset bookkeeping remains relative to the stack pointer alone. Without this attribute, the stack uses ordinary stack-pointer-relative addressing; a selector association is not inferred from a processor's other segmented accesses or from an instruction's memory accesses.
 </para>
 <para>
 By default the stack is assumed to grow in the <emphasis>negative</emphasis> direction,

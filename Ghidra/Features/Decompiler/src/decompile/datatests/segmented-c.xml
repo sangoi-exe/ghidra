@@ -16,10 +16,15 @@
 45558bec571e078b7e068b4e088a460a8ae0fcf7c701007404e309aa49d1e9f3ab7301aa5f5d4dcb
 45558bec568b76068a460850ff760a560ee8c4ff83c4068bc65e5d4dcb
 </bytechunk>
+<!-- Observed JMP/CALL_RETURN regression: no stack write occurs at the converted JMP. -->
+<bytechunk space="ram" offset="0x10001000" readonly="true">e90d00</bytechunk>
+<bytechunk space="ram" offset="0x10001010" readonly="true">558bec8b46065dcb</bytechunk>
 <symbol space="ram" offset="0x10003c0b" name="tlink_writer"/>
 <symbol space="ram" offset="0x10003dc9" name="f_scopy"/>
 <symbol space="ram" offset="0x100011f2" name="fill_body"/>
 <symbol space="ram" offset="0x1000121a" name="fill_wrapper"/>
+<symbol space="ram" offset="0x10001000" name="jump_thunk"/>
+<symbol space="ram" offset="0x10001010" name="jump_target"/>
 </binaryimage>
 <script>
   <com>parse line extern bool __cdecl16near tlink_writer(void);</com>
@@ -43,12 +48,19 @@
   <com>print raw</com>
   <com>option maxlinewidth 300</com>
   <com>print C</com>
+  <com>parse line extern uint2 __cdecl16far jump_target(uint2 value);</com>
+  <com>parse line extern uint2 __cdecl16far jump_thunk(uint2 value);</com>
+  <com>lo fu jump_thunk</com>
+  <com>decompile</com>
+  <com>override flow r0x10001000 callreturn</com>
+  <com>decompile</com>
+  <com>print raw</com>
+  <com>print C</com>
   <com>quit</com>
 </script>
 <stringmatch name="Segmented writer DS read" min="1" max="1">\*\(xunknown2 \*\)segmentop\(unaff_DS,\(xunknown2 \*\)0x58c\)</stringmatch>
 <stringmatch name="Segmented writer word store" min="1" max="1">\*\(xunknown2 \*\)segmentop\(unaff_DS,.*\) = 0x9090;</stringmatch>
 <stringmatch name="Segmented writer byte store" min="1" max="1">\*\(xunknown1 \*\)segmentop\(unaff_DS,.*\) = 0xe9;</stringmatch>
-<stringmatch name="Segmented copier stack selector" min="1" max="20">segmentop\(unaff_SS,</stringmatch>
 <stringmatch name="Segmented copier source selector" min="2" max="2">pxVar1 = \(xunknown2 \*\)segmentop\(xVar7,pxVar4\);</stringmatch>
 <stringmatch name="Segmented copier destination selector" min="2" max="2">pxVar2 = \(xunknown2 \*\)segmentop\(xVar6,pxVar5\);</stringmatch>
 <stringmatch name="Segmented copier far argument read" min="2" max="2">\*\(uint4 \*\)segmentop\(unaff_SS,&amp;source\)</stringmatch>
@@ -56,4 +68,5 @@
 <stringmatch name="Segmented copier byte read and write" min="1" max="1">\*\(xunknown1 \*\)pxVar2 = \*\(xunknown1 \*\)pxVar1;</stringmatch>
 <stringmatch name="Segmented fill call reads" min="1" max="1">fill_body\(\*\(uint2 \*\)segmentop\(unaff_SS,\(uint2 \*\)\(\(int2\)register_SP \+ -10\)\),\*\(uint2 \*\)segmentop\(unaff_SS,\(uint2 \*\)\(\(int2\)register_SP \+ -8\)\),\*\(uint2 \*\)segmentop\(unaff_SS,\(uint2 \*\)\(\(int2\)register_SP \+ -6\)\)\);</stringmatch>
 <stringmatch name="No unrelated abstract call inputs" min="0" max="0">in_stack_0000fff[68a]</stringmatch>
+<stringmatch name="Converted JMP stack argument selector" min="1" max="1">jump_target\(\*\(uint2 \*\)segmentop\(unaff_SS,&amp;value\)\)</stringmatch>
 </decompilertest>

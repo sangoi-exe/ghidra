@@ -527,47 +527,6 @@ PcodeOp *Funcdata::opStackStore(AddrSpace *spc,uintb off,PcodeOp *op,bool insert
   return storeop;
 }
 
-/// Recover the selector from the CALL instruction's own stack write, before or after heritage. The registered segment operation identifies the operands; the stack-space register identifies the near pointer. No default segment register is assumed.
-static Varnode *findCallStackSegment(Funcdata &data,AddrSpace *spc,PcodeOp *call,SegmentOp *segdef)
-
-{
-  const VarnodeData &stackptr(spc->getSpacebase(0));
-  for(PcodeOp *store = call->previousOp(); store != (PcodeOp *)0 && store->getAddr() == call->getAddr(); store = store->previousOp()) {
-    if (store->code() != CPUI_STORE || store->getIn(0)->getSpaceFromConst() != spc->getContain())
-      continue;
-    Varnode *address = store->getIn(1);
-    PcodeOp *segment = address->getDef();
-    if (segment == (PcodeOp *)0) {
-      // Raw instruction inputs have not been linked to their definitions yet.
-      for(PcodeOp *def = store->previousOp(); def != (PcodeOp *)0 && def->getAddr() == call->getAddr(); def = def->previousOp()) {
-        Varnode *out = def->getOut();
-        if (out != (Varnode *)0 && out->getAddr() == address->getAddr() && out->getSize() == address->getSize()) {
-          segment = def;
-          break;
-        }
-      }
-    }
-    if (segment == (PcodeOp *)0)
-      continue;
-    vector<Varnode *> terms(2,(Varnode *)0);
-    if (segment->code() == CPUI_SEGMENTOP) {
-      if (segment->getIn(0)->getSpaceFromConst() != spc->getContain())
-        continue;
-      terms[0] = segment->getIn(1);
-      terms[1] = segment->getIn(2);
-    }
-    else if (!segdef->unify(data,segment,terms))
-      continue;
-    if (terms[1]->getAddr() == stackptr.getAddr() && terms[1]->getSize() == stackptr.size) {
-      Varnode *selector = terms[0];
-      if (selector->isFree())
-        selector = data.newVarnode(selector->getSize(),selector->getAddr());
-      return selector;
-    }
-  }
-  throw LowlevelError("Cannot recover segmented stack address from CALL instruction");
-}
-
 /// \brief Create a LOAD expression at an offset relative to a \e spacebase register for a given address space
 ///
 /// The \e spacebase register is looked up for the given address space, or an optional previously
@@ -584,10 +543,11 @@ static Varnode *findCallStackSegment(Funcdata &data,AddrSpace *spc,PcodeOp *call
 Varnode *Funcdata::opStackLoad(AddrSpace *spc,uintb off,uint4 sz,PcodeOp *op,Varnode *stackref,bool insertafter,bool isPlaceholder)
 
 {
-    SegmentOp *segdef = glb->userops.getSegmentOp(spc->getContain()->getIndex());
     Varnode *selector = (Varnode *)0;
-    if (!isPlaceholder && op->isCall() && segdef != (SegmentOp *)0 && segdef->getNumVariableTerms() == 2)
-      selector = findCallStackSegment(*this,spc,op,segdef);
+    if (!isPlaceholder && op->isCall() && spc == glb->getStackSpace() && glb->stackSegment.space != (AddrSpace *)0) {
+      // Heritage links this read to the declared register's value at the CALL, including reads introduced by late prototype recovery.
+      selector = newVarnode(glb->stackSegment.size,glb->stackSegment.getAddr());
+    }
     Varnode *addout = createStackRef(spc,off,op,stackref,insertafter);
     if (selector != (Varnode *)0) {
       // The displacement must wrap at the near-pointer width before segmentation.

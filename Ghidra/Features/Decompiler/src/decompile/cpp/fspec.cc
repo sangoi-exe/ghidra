@@ -5135,7 +5135,7 @@ void FuncCallSpecs::commitNewInputs(Funcdata &data,vector<Varnode *> &newinput)
     activeinput.getTrial(i).markActive(); // Parameter is not optional
     AddrSpace *paramSpace = param->getAddress().getSpace();
     if (noplacehold && paramSpace->getType() == IPTR_SPACEBASE &&
-        data.getArch()->userops.getSegmentOp(paramSpace->getContain()->getIndex()) == (SegmentOp *)0) {
+        (paramSpace != data.getArch()->getStackSpace() || data.getArch()->stackSegment.space == (AddrSpace *)0)) {
       // We have a locked stack parameter, use it to recover the stack offset
       vn->setSpacebasePlaceholder();
       noplacehold = false;	// Only set this on the first parameter

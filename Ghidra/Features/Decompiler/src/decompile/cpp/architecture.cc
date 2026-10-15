@@ -45,6 +45,7 @@ AttributeId ATTRIB_LOADERSYMBOLS = AttributeId("loadersymbols",108);
 AttributeId ATTRIB_PARENT = AttributeId("parent",109);
 AttributeId ATTRIB_REGISTER = AttributeId("register",110);
 AttributeId ATTRIB_REVERSEJUSTIFY = AttributeId("reversejustify",111);
+AttributeId ATTRIB_SEGMENTREGISTER = AttributeId("segmentregister",161);
 AttributeId ATTRIB_SIGNEXT = AttributeId("signext",112);
 AttributeId ATTRIB_STYLE = AttributeId("style",113);
 
@@ -157,6 +158,7 @@ Architecture::Architecture(void)
   funcptr_align = 0;
   defaultfp = (ProtoModel *)0;
   defaultReturnAddr.space = (AddrSpace *)0;
+  stackSegment.space = (AddrSpace *)0;
   evalfp_current = (ProtoModel *)0;
   evalfp_called = (ProtoModel *)0;
   types = (TypeFactory *)0;
@@ -651,6 +653,12 @@ void Architecture::restoreFromSpec(DocumentStorage &store)
 void Architecture::initializeSegments(void)
 
 {
+  if (stackSegment.space != (AddrSpace *)0) {
+    SegmentOp *segdef = userops.getSegmentOp(getStackSpace()->getContain()->getIndex());
+    if (segdef == (SegmentOp *)0 || segdef->getBaseSize() != stackSegment.size ||
+        segdef->getInnerSize() != getStackSpace()->getAddrSize())
+      throw LowlevelError("Stackpointer registers do not match the stack space's segment operation");
+  }
   int4 sz = userops.numSegmentOps();
   for(int4 i=0;i<sz;++i) {
     SegmentOp *sop = userops.getSegmentOp(i);
@@ -997,6 +1005,8 @@ void Architecture::decodeStackPointer(Decoder &decoder)
       basespace = decoder.readSpace();
     else if (attribId == ATTRIB_REGISTER)
       registerName = decoder.readString();
+    else if (attribId == ATTRIB_SEGMENTREGISTER)
+      stackSegment = translate->getRegister(decoder.readString());
   }
 
   if (basespace == (AddrSpace *)0)

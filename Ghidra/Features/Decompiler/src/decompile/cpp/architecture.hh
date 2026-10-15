@@ -73,6 +73,7 @@ extern AttributeId ATTRIB_LOADERSYMBOLS;	///< Marshaling attribute "loadersymbol
 extern AttributeId ATTRIB_PARENT;	///< Marshaling attribute "parent"
 extern AttributeId ATTRIB_REGISTER;	///< Marshaling attribute "register"
 extern AttributeId ATTRIB_REVERSEJUSTIFY;	///< Marshaling attribute "reversejustify"
+extern AttributeId ATTRIB_SEGMENTREGISTER; ///< Marshaling attribute "segmentregister"
 extern AttributeId ATTRIB_SIGNEXT;	///< Marshaling attribute "signext"
 extern AttributeId ATTRIB_STYLE;	///< Marshaling attribute "style"
 
@@ -193,6 +194,7 @@ public:
   map<string,ProtoModel *> protoModels; ///< Parsed forms of possible prototypes
   ProtoModel *defaultfp;	///< Parsed form of default prototype
   VarnodeData defaultReturnAddr;	///< Default storage location of return address (for current function)
+  VarnodeData stackSegment;	///< Optional register holding the formal stack's segment selector
   ProtoModel *evalfp_current;	///< Function proto to use when evaluating current function
   ProtoModel *evalfp_called;	///< Function proto to use when evaluating called functions
   TypeFactory *types;		///< List of types for this binary

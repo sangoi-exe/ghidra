@@ -187,6 +187,7 @@ public record AttributeId(String name, int id) {
 	public static final AttributeId ATTRIB_PARENT = new AttributeId("parent", 109);
 	public static final AttributeId ATTRIB_REGISTER = new AttributeId("register", 110);
 	public static final AttributeId ATTRIB_REVERSEJUSTIFY = new AttributeId("reversejustify", 111);
+	public static final AttributeId ATTRIB_SEGMENTREGISTER = new AttributeId("segmentregister", 161);
 	public static final AttributeId ATTRIB_SIGNEXT = new AttributeId("signext", 112);
 	public static final AttributeId ATTRIB_STYLE = new AttributeId("style", 113);
 
@@ -256,6 +257,6 @@ public record AttributeId(String name, int id) {
 	public static final AttributeId ATTRIB_MINELEMENTS = new AttributeId("minelements", 159);
 	public static final AttributeId ATTRIB_MAXELEMENTS = new AttributeId("maxelements", 160);
 
-	public static final AttributeId ATTRIB_UNKNOWN = new AttributeId("XMLunknown", 161);
+	public static final AttributeId ATTRIB_UNKNOWN = new AttributeId("XMLunknown", 162);
 
 }

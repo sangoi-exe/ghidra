@@ -29,8 +29,9 @@ public:
   Architecture *arch;
   Funcdata *fd;
   BlockBasic *block;
-  SegmentedEnvironment(void) {
-    istringstream s("<binaryimage arch=\"x86:LE:16:Protected Mode:default\"></binaryimage>");
+  bool hasFlow;
+  SegmentedEnvironment(bool buildFlow = false) : hasFlow(buildFlow) {
+    istringstream s("<binaryimage arch=\"x86:LE:16:Protected Mode:default\"><bytechunk space=\"ram\" offset=\"0x1000\" readonly=\"true\">cb</bytechunk></binaryimage>");
     DocumentStorage store;
     Document *doc = store.parseDocument(s);
     store.registerTag(doc->getRoot());
@@ -38,11 +39,17 @@ public:
     arch->init(store);
     fd = arch->symboltab->getGlobalScope()->addFunction(Address(arch->getDefaultCodeSpace(),0x1000),"segmented_test")->getFunction();
     fd->setHighLevel();
-    block = new BlockBasic(fd);
+    if (hasFlow) {
+      fd->startProcessing();
+      block = (BlockBasic *)fd->getBasicBlocks().getBlock(0);
+    }
+    else
+      block = new BlockBasic(fd);
   }
   ~SegmentedEnvironment(void) {
     delete arch;
-    delete block;
+    if (!hasFlow)
+      delete block;
   }
   PcodeOp *op(OpCode code,const vector<Varnode *> &inputs,Datatype *outType = (Datatype *)0) {
     PcodeOp *res = fd->newOp(inputs.size(),fd->getAddress());
@@ -54,7 +61,10 @@ public:
       out->updateType(outType,true,true);
       out->setImplied();
     }
-    fd->opInsertEnd(res,block);
+    if (hasFlow)
+      fd->opInsertBefore(res,block->lastOp());
+    else
+      fd->opInsertEnd(res,block);
     return res;
   }
   Varnode *constant(int4 size,uintb value,Datatype *type = (Datatype *)0) {
@@ -182,17 +192,14 @@ TEST(segmented_member_address) {
 }
 
 TEST(segmented_call_arguments) {
-  SegmentedEnvironment env;
+  SegmentedEnvironment env(true);
   AddrSpace *stack = env.arch->getStackSpace();
-  SegmentOp *segdef = env.arch->userops.getSegmentOp(stack->getContain()->getIndex());
-  Datatype *addressType = env.arch->types->getBase(4,TYPE_UNKNOWN);
   const VarnodeData &ss(env.arch->translate->getRegister("SS"));
-  const VarnodeData &sp(stack->getSpacebase(0));
-  PcodeOp *rawSegment = env.op(CPUI_CALLOTHER,{env.constant(4,segdef->getIndex()),env.fd->newVarnode(2,ss.getAddr()),env.fd->newVarnode(2,sp.getAddr())},addressType);
-  // As in the real CALL's raw p-code, the STORE input initially has no SSA definition.
-  PcodeOp *store = env.op(CPUI_STORE,{env.fd->newVarnodeSpace(stack->getContain()),env.fd->newVarnode(4,rawSegment->getOut()->getAddr()),env.constant(2,0x1003)});
+  ASSERT_EQUALS(env.arch->stackSegment.getAddr(),ss.getAddr());
+  // A changed selector must reach the call through data flow, without a CALL-address STORE.
+  PcodeOp *writeSelector = env.op(CPUI_COPY,{env.fd->newVarnode(2,env.arch->translate->getRegister("DS").getAddr())});
+  Varnode *selector = env.fd->newVarnodeOut(2,ss.getAddr(),writeSelector);
   PcodeOp *call = env.op(CPUI_CALL,{env.fd->newVarnode(4,Address(stack->getContain(),0x2000))});
-  ASSERT(!store->getIn(1)->isWritten());
   for(int4 displacement=4;displacement<=8;displacement+=2) {
     Varnode *value = env.fd->opStackLoad(stack,displacement,2,call,(Varnode *)0,false);
     PcodeOp *load = value->getDef();
@@ -212,13 +219,8 @@ TEST(segmented_call_arguments) {
   ASSERT_EQUALS(collapse.applyOp(nearAdd,*env.fd),1);
   ASSERT_EQUALS(nearAdd->getIn(0)->getOffset(),2);
 
-  // Exercise the same domain after linking, through late locked-prototype reconstruction.
-  Varnode *selector = env.fd->setInputVarnode(env.fd->newVarnode(2,ss.getAddr()));
-  env.fd->opSetOpcode(rawSegment,CPUI_SEGMENTOP);
-  env.fd->opSetInput(rawSegment,env.fd->newVarnodeSpace(stack->getContain()),0);
-  env.fd->opSetInput(rawSegment,selector,1);
-  env.fd->opSetInput(rawSegment,env.fd->constructSpacebaseInput(stack),2);
-  env.fd->opSetInput(store,rawSegment->getOut(),1);
+  // Exercise actual heritage before and after late locked-prototype reconstruction.
+  env.fd->opHeritage();
   FuncCallSpecs spec(call);
   spec.setInternal(env.arch->getModel("__cdecl16far"),env.arch->types->getTypeVoid());
   spec.initActiveInput();
@@ -237,6 +239,7 @@ TEST(segmented_call_arguments) {
   ASSERT_EQUALS(call->numInput(),5);
   ASSERT_EQUALS(spec.getStackPlaceholderSlot(),4);
   ASSERT_EQUALS(call->getIn(4),placeholder);
+  env.fd->opHeritage();
   for(int4 slot=1;slot<=3;++slot) {
     Varnode *argument = call->getIn(slot);
     ASSERT(!argument->isSpacebasePlaceholder());
