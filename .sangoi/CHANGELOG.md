@@ -2,7 +2,7 @@
 
 ## In progress — safe profiles and new RE candidates
 
-- Local Code Gate returned `DO_NOT_PROCEED` for `9eab2ea222a559cec2541a2061405403fa210ad0`, with complete required review and three TLINK51 custom-follower defects. The user selected their existing-owner correction. Native before/after proof now closes the demonstrated failures: preserve patched FAR-slot analysis before refusal, qualify the noncontiguous error body through the shared owner and skip dependent inline-flow edits when any prerequisite is preserved. The final TLINK51/TLINK401 validators and extension build pass. A new remediation Gate remains unselected; no reviewed-completion or deployment claim is made.
+- Local Code Gate returned `DO_NOT_PROCEED` for `9eab2ea222a559cec2541a2061405403fa210ad0`, with complete required review and three TLINK51 custom-follower defects. The user selected their existing-owner correction. Native before/after proof now closes the demonstrated failures: preserve patched FAR-slot analysis before refusal, qualify the noncontiguous error body through the shared owner and skip dependent inline-flow edits when any prerequisite is preserved. The final TLINK51/TLINK401 validators and extension build pass. The user selected the same local reviewer for the new remediation Gate, which is pending; no reviewed-completion or deployment claim is made.
 
 - Correct overflow in both MCP pagination helpers. Twelve focused tests pass after the two demonstrated failures, and actual stock-bridge stdio requests to both pagination paths return the exact 1,029-item slice from 1,030 items with offset 1 and limit 2147483647.
 
