@@ -32,7 +32,7 @@ public class ToolchainProfileAnalyzer extends AbstractAnalyzer {
 
     public ToolchainProfileAnalyzer() {
         super(NAME, "Apply exact tool-image layouts and supplied-application runtime correspondence using native original-file provenance, without historical compiler attribution.", AnalyzerType.BYTE_ANALYZER);
-        setPriority(AnalysisPriority.LOW_PRIORITY.after().after());
+        setPriority(AnalysisPriority.FORMAT_ANALYSIS);
         setDefaultEnablement(true);
         setSupportsOneTimeAnalysis();
     }
@@ -65,24 +65,11 @@ public class ToolchainProfileAnalyzer extends AbstractAnalyzer {
             try {
                 ToolchainProfile.Context context = profile.match(program, monitor);
                 if (context != null) {
-                    // Imported facts must not enqueue heuristic rediscovery or purge inference.
-                    // The native worker owns suspension/restoration in analyzer and script contexts.
-                    boolean applied = AutoAnalysisManager.getAnalysisManager(program).scheduleWorker(new AnalysisWorker() {
-                        @Override
-                        public String getWorkerName() {
-                            return NAME + ": " + profile.id();
-                        }
-
-                        @Override
-                        public boolean analysisWorkerCallback(Program target, Object workerContext, TaskMonitor workerMonitor) throws Exception {
-                            profile.apply((ToolchainProfile.Context) workerContext, workerMonitor, log);
-                            return true;
-                        }
-                    }, context, false, monitor);
-                    if (!applied) {
+                    if (!applyStage(profile, context, true, monitor, log)) {
                         return false;
                     }
-                    log.appendMsg(NAME, "Applied " + profile.id() + " to qualified original FileBytes in native analysis-worker batch");
+                    // Keep final cleanup/contracts behind ordinary inference in the same native queue.
+                    AutoAnalysisManager.getAnalysisManager(program).scheduleOneTimeAnalysis(new FinalFactsAnalyzer(profile, context), set);
                 }
             }
             catch (CancelledException e) {
@@ -93,15 +80,75 @@ public class ToolchainProfileAnalyzer extends AbstractAnalyzer {
                 throw new CancelledException();
             }
             catch (Exception e) {
-                Throwable failure = e instanceof InvocationTargetException invocation ? invocation.getCause() : e;
-                if (failure instanceof CancelledException cancellation) {
-                    throw cancellation;
-                }
-                log.appendMsg(NAME, "Profile " + profile.id() + " failed visibly: " + failure.getMessage());
-                log.appendException(failure);
-                return false;
+                return failure(profile, e, log);
             }
         }
         return true;
+    }
+
+    private static boolean applyStage(ToolchainProfile profile, ToolchainProfile.Context context, boolean data, TaskMonitor monitor, MessageLog log) throws Exception {
+        // Suppress new heuristic events from imported facts, not already queued native work.
+        boolean applied = AutoAnalysisManager.getAnalysisManager(context.program()).scheduleWorker(new AnalysisWorker() {
+            @Override
+            public String getWorkerName() {
+                return NAME + ": " + profile.id() + (data ? " data preparation" : " final facts");
+            }
+
+            @Override
+            public boolean analysisWorkerCallback(Program target, Object workerContext, TaskMonitor workerMonitor) throws Exception {
+                if (data) {
+                    profile.prepareData((ToolchainProfile.Context) workerContext, workerMonitor, log);
+                }
+                else {
+                    profile.applyFinalFacts((ToolchainProfile.Context) workerContext, workerMonitor, log);
+                }
+                return true;
+            }
+        }, context, false, monitor);
+        if (applied) {
+            log.appendMsg(NAME, data ? "Prepared data for " + profile.id() : "Applied " + profile.id() + " final facts to qualified original FileBytes in native analysis-worker batch");
+        }
+        return applied;
+    }
+
+    private static boolean failure(ToolchainProfile profile, Exception exception, MessageLog log) throws CancelledException {
+        Throwable failure = exception instanceof InvocationTargetException invocation ? invocation.getCause() : exception;
+        if (failure instanceof CancelledException cancellation) {
+            throw cancellation;
+        }
+        String message = "Profile " + profile.id() + " failed visibly: " + failure.getMessage();
+        log.appendMsg(NAME, message);
+        log.appendException(failure);
+        Msg.warn(ToolchainProfileAnalyzer.class, message);
+        return false;
+    }
+
+    private static final class FinalFactsAnalyzer extends AbstractAnalyzer {
+        private final ToolchainProfile profile;
+        private final ToolchainProfile.Context context;
+
+        private FinalFactsAnalyzer(ToolchainProfile profile, ToolchainProfile.Context context) {
+            super(NAME + " final facts", "Finalize qualified native function boundaries and contracts after ordinary inference.", AnalyzerType.BYTE_ANALYZER);
+            this.profile = profile;
+            this.context = context;
+            setPriority(AnalysisPriority.LOW_PRIORITY.after().after());
+        }
+
+        @Override
+        public boolean added(Program program, AddressSetView set, TaskMonitor monitor, MessageLog log) throws CancelledException {
+            try {
+                return applyStage(profile, context, false, monitor, log);
+            }
+            catch (CancelledException e) {
+                throw e;
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new CancelledException();
+            }
+            catch (Exception e) {
+                return failure(profile, e, log);
+            }
+        }
     }
 }

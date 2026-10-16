@@ -11,6 +11,8 @@ import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.Bcc20Profile;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -72,8 +74,9 @@ public class ValidateBcc20Profile extends GhidraScript {
             result.append("Production automatic artifacts checked before any explicit reapplication.\n");
         }
         else {
-            profile.apply(c, monitor, log);
-            result.append("Canonical Bcc20Profile.apply exercised directly; automatic activation is NOT tested in this mode.\n");
+            profile.prepareData(c, monitor, log);
+            profile.applyFinalFacts(c, monitor, log);
+            result.append("Canonical Bcc20Profile.prepareData/applyFinalFacts exercised directly; automatic activation is NOT tested in this mode.\n");
         }
         for (var entry : nativeBytes.entrySet()) {
             var block = currentProgram.getMemory().getBlock(entry.getKey());
@@ -160,12 +163,35 @@ public class ValidateBcc20Profile extends GhidraScript {
         println("BCC20 PROFILE VALIDATION PASS (" + args[2] + "; automatic activation tested=" + automatic + "): original equality, native resident relocation preservation, recorded overlay bytes/joins, selected complete functions/data, repeated application and user-source preservation.");
     }
 
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
     private void reapply(Bcc20Profile profile, MessageLog log, boolean automatic) throws Exception {
         if (automatic) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production repeated analysis failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(c, monitor, log);
+            profile.prepareData(c, monitor, log);
+            profile.applyFinalFacts(c, monitor, log);
         }
     }
 

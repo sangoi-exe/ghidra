@@ -10,6 +10,8 @@ import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.ScranticRuntimeProfile;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -42,7 +44,8 @@ public class ValidateScranticRuntimeProfile extends GhidraScript {
             require(new ToolchainProfileAnalyzer().canAnalyze(currentProgram), "Production registry must qualify this original");
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
         result.append(automatic ? "AUTOMATIC production activation asserted before script.\n" : "EXPLICIT DIRECT application only; registry activation unproved.\n");
         result.append("Ghidra ").append(getGhidraVersion()).append("; ").append(currentProgram.getExecutableFormat()).append("; ").append(currentProgram.getLanguageID()).append("; literal original equality ").append(original.length).append(" bytes\n");
@@ -124,12 +127,35 @@ public class ValidateScranticRuntimeProfile extends GhidraScript {
         println("SCRANTIC RUNTIME PROFILE VALIDATION PASS (" + args[2] + "): " + args[1]);
     }
 
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
     private void apply(ScranticRuntimeProfile profile, boolean automatic, MessageLog log) throws Exception {
         if (automatic) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production analyzer rerun failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
     }
 

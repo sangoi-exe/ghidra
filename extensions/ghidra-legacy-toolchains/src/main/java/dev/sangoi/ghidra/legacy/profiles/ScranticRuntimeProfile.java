@@ -14,7 +14,12 @@ public final class ScranticRuntimeProfile extends ToolchainProfile {
     }
 
     @Override
-    public void apply(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+    public void prepareData(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+        monitor.checkCancelled();
+    }
+
+    @Override
+    public void applyFinalFacts(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
         monitor.checkCancelled();
         // Johnny matching annex at fixed cutoff5e6c9dbe, LSEEK599ba65 and R49 heap record.
         // All coordinates below are absolute original FILE; NE1 starts0800, NE13 starts17200.

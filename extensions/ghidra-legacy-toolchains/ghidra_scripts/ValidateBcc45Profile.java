@@ -9,6 +9,8 @@ import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.Bcc45Profile;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -114,6 +116,7 @@ public class ValidateBcc45Profile extends GhidraScript {
         ToolchainProfileAnalyzer analyzer = new ToolchainProfileAnalyzer();
         MessageLog log = new MessageLog();
         require(analyzer.added(currentProgram, currentProgram.getMemory(), monitor, log), "Production repeated analysis failed: " + log);
+        analyzeProfileChanges(Bcc45Profile.ID);
         require(typeCount == currentProgram.getDataTypeManager().getDataTypeCount(true), "Repeated analysis must not duplicate types");
         require(symbols == currentProgram.getSymbolTable().getNumSymbols(), "Repeated analysis must not duplicate labels");
         require(before.equals(currentProgram.getListing().getComment(CommentType.PLATE, context.mapped(0x895f1))), "Repeated analysis must not duplicate profile comments");
@@ -126,11 +129,33 @@ public class ValidateBcc45Profile extends GhidraScript {
         String signature = guarded.getPrototypeString(true, true);
         AddressSet guardedBody = new AddressSet(guarded.getBody());
         require(analyzer.added(currentProgram, currentProgram.getMemory(), monitor, log), "Production user-priority rerun failed: " + log);
+        analyzeProfileChanges(Bcc45Profile.ID);
         require(signature.equals(guarded.getPrototypeString(true, true)) && guardedBody.equals(guarded.getBody()) && guarded.getSignatureSource() == SourceType.USER_DEFINED, "Analyzer must preserve the user-owned actual function/signature");
         result.append("Production user-source preservation passed on actual branch constructor; disposable validation Program intentionally retains this user-owned signature.\n");
         result.append(log).append('\n');
         Files.writeString(output.resolve("bcc45-profile-validation.txt"), result);
         println("BCC45 PROFILE VALIDATION PASS: exact original bytes, native mapping/relocations, all52 callback references, separate layouts, complete selected extents, state/normalizer, repeated analysis and user-source preservation. " + output);
+    }
+
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
     }
 
     private void checkCallbacks(long fileOffset) throws Exception {

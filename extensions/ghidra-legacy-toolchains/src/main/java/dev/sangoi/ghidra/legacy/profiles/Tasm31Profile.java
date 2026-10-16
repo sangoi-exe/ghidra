@@ -30,7 +30,7 @@ public final class Tasm31Profile extends ToolchainProfile {
     }
 
     @Override
-    public void apply(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+    public void prepareData(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
         monitor.checkCancelled();
         applyTypes(c);
         applyCall(c);
@@ -40,6 +40,57 @@ public final class Tasm31Profile extends ToolchainProfile {
         applyFlagHelpers(c);
         applyLiteralControls(c);
         applyMzReferences(c);
+    }
+
+    @Override
+    public void applyFinalFacts(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+        monitor.checkCancelled();
+        code(c, 0, 0x6c4d, 0x6c8d, "encode_call", "R119/TI01: current tag29 and8C90 CF choose ordinary16-bit four-byte0E E8 or five-byte9A. Four-byte branch has NO NOP; later linker90 0E E8 rewrite is distinct. Three terminal tails to36D6; alternative indirect/operand-size descendants remain opaque.");
+        code(c, 0, 0x8c90, 0x8d01, "call_far_predicate_cf", "R119/R145: CF1 retains FAR. Requires current SMART705E:20, zero operand06 and qualified identity. Ordinary branch installs postlookup AX as ES (including0), reads1A BEFORE04, then restores operand ES/CX; not simply7060 equality. IDEAL branch normalizes target first/current second. No numeric AX-bool contract.");
+        code(c, 0, 0x7caa, 0x7ce9, "emit_near_operand", "R152/TI01: ordinary16-bit branch includes already emitted prefix count in displacement, prepares current operand, emits CL then word.8DF7 CF1 alternate width is separate; opaque helpers are not assumed to preserve arbitrary registers.");
+        code(c, 0, 0x7ce9, 0x7d0a, "emit_far_operand", "R119/TI01: ordinary16-bit branch emits CL9A plus low offset/word16; alternative-width branch is not generalized. Terminal tail910F, not inline data.");
+        code(c, 0, 0x40f6, 0x4113, "emit_byte", "TI01: writes AL at6F4E+old6F4C, increments word count, ancillary425E conditional. Adjacent4113 literal90 is NOT part of body or NOP-fill owner.");
+        code(c, 0, 0x4114, 0x412f, "emit_word", "TI01: current AX write/count+2; tails425E. Adjacent412F excluded.");
+        code(c, 0, 0x4130, 0x414f, "emit_word_pair", "TI01: current AX/CX write/count+4; tails425E. No flat pointer prototype.");
+        code(c, 0, 0x7e82, 0x7e94, "prepare_call_operand", "R133: save operand ES to7406, reset emission, explicitly save CX around9698. Materialization effects remain conditional.");
+        code(c, 0, 0x7f4b, 0x7f6e, "classify_immediate_cf", "R139 corrected complete end includes failure RET7F6D. Tags28/29 accepted CF0; tag20 has additional current mode/word14 tests.");
+        code(c, 0, 0x45b3, 0x461e, "restore_replay_record", "TI01: record05:10 compact restores selected fields/endpoint; otherwise forward20-word06..2E→7050..7078 requires DF0 and valid DS/SS. Regenerates7078 callback after restore;05:20 invokes near record30 with DI32. Current ES/DS changes are real.");
+        code(c, 0, 0x46f5, 0x4715, "snapshot_and_dispatch", "TI01: forward24-word7050..7080→71B6..71E6 includes7078 at71DE; indirect CALL[7078]. AFTER callback freshly rereads7056/7058 to overwrite71B6/71B8; no arbitrary callback/global/record-ES preservation.");
+        code(c, 0, 0x4715, 0x4793, "admit_replay_record", "TI01:47F2 returned CF selects compact/full. One paragraph compact; three paragraphs full with20-word snapshot copy ending before71DE; extension size derives from current707A, stores2E/30 and invokes snapshot71E2 with DI32. Valid finite allocation/DF/aliases remain conditions.");
+        code(c, 0, 0x4793, 0x47f2, "allocate_link_replay_record", "TI01: paragraph pool71EA/71EC, save record ES around3016, store actual returned AX at02;04 uses current43D7 plus POST3016 CX. LES/XCHG list insertion stores replaced selector at00. Allocator descendants opaque.");
+        code(c, 0, 0x47f2, 0x4822, "compact_replay_predicate_cf", "TI01: rejects extension71E4, missing prior71F2 or14-word current context mismatch; SUB/SBB endpoint difference returns CF, not only numeric low difference. REPE comparison geometry requires DF0/valid storage.");
+        code(c, 0xf90, 0x66d2, 0x675a, "select_replay_callback", "TI01: current705F:10 selects F3A9 versusF50D into7078. Clear branch indexes current7077*8 into selected2BC8/2C68/2B78/2C18; set branch indexes2CB8 by*4. Valid table/state extent conditional; selection is not historical pass attribution.");
+        code(c, 0, 0x4b89, 0x4bdf, "finalize_expression", "R139:05 bit10 has priority; save POST5989 word04 across95FB. Bit20-only calls6311 then FRESH word04. After4BED read CURRENT05:40, transfer current25&0F→tag and1C→02. Deferred29 becomes09, not an unconditional FAR encoder request.");
+        code(c, 0, 0x4bed, 0x4bfc, "materialize_expression", "R139:5F26→9698,600F,6096,4BFC then tail5F2D reloads CURRENT global7406 as ES. Not arbitrary record/global preservation.");
+        code(c, 0, 0x4bfc, 0x4c2c, "mask_materialized_tag", "R139:clear tag20,set04:80; conditional04:08 and05 nibble updates. Immediate29 can become09 independently of deferred transfer.");
+        code(c, 0, 0x5989, 0x59eb, "save_tag_or_resolve_identity", "R139:tag20 saves00/02→25/1C then clears tag/value and pending fields;4B89 immediately95FB discards this temporary saved tag. Other branch stores actual returned170A CX to18. Descendant effects qualified.");
+        code(c, 0, 0x95fb, 0x960c, "clear_deferred_tag", "R133/R139:clear05:40,25,1C only; not pending06 or identity18.");
+        code(c, 0, 0x6311, 0x6361, "transfer_pending_identity", "R139:copy1E/20→14/16 before tag test; only nonzero22 updates18 and conditionally1A/current subtype/04:04. Does not directly write pending06; not transitive preservation.");
+        code(c, 0, 0x1a48, 0x1a51, "lookup_expression", "R145:1C65 selects state in ES, tail4A75 with DI08; sometimes AX0 while ES remains selected state. No unconditional pointer-return prototype.");
+        code(c, 0, 0x1c65, 0x1ce7, "select_symbol_state", "R145:current43D6/cache0E selects state; strictJA successor choice versus initialJAE, conditional cache write. Valid terminating links/finite arithmetic required; returned ES need not equal AX.");
+        code(c, 0, 0x4a75, 0x4ac6, "reconstruct_selected_expression", "R145:nonzero state08→fresh scalar;else nonzero0A→fresh cached40-byte copy after REREADING0A postallocation;else AX0 leaves ES selected. Qualified normal returns CF0/ZF1, not constant AX or safe null-record. DF0/valid storage/aliases conditional.");
+        AddressSet allocation = c.range(0x50cc, 0x50e2);
+        allocation.add(c.range(0x50f2, 0x511a));
+        c.function(0x50cc, allocation, "tasm31_allocate_expression_view", 0, "R145 qualified allocation body FILE[50cc,50e2)+[50f2,511a), logical0:[48cc,48e2)+[48f2,491a). THREE-paragraph pool allocation is independent of the40-byte clear/copy. Ordinary fallthrough48de→48e2 reaches the separately called clear entry; final4918 backedge reaches48d3. No exclusive ownership of that shared routine. Nonlocal exhaustion and opaque allocator descendants are not normal returns.");
+        code(c, 0, 0x48e2, 0x48f2, "clear_expression_view", "R145 shared clear entry: genuine near CALL at logical0:5137/FILE5937 targets48e2/FILE50e2, independently of allocation entry48cc. XORAX/MOVDIAX/MOVCX14h/REPSTOSW clear40 bytes then set byte10=1; DF=0, valid selected ES storage and aliases remain conditions. This clear size is not the THREE-paragraph pool allocation.");
+        code(c, 0, 0x950c, 0x952e, "map_type_word_to_al", "R133:negative branch complements ALL16 AX bits;FFFE→0001→table09. Only AL replaced, AH not zero-extended. OR20 by caller forms29.");
+        code(c, 0, 0x1adc, 0x1b02, "project_current_handle", "R152:current handle07 bit20 clear returns word0E on ALL masked-class alternatives;bit20 set returns10. Numeric projections, not formal external IDs.");
+        code(c, 0xf90, 0x3bb2, 0x3c65, "append_internal_queue9", "R152:normal existing-block route publishes updated06 before nine ordered stores CL,BX,DX,SI,saved DI. New-block route uses POST3F38 returnedAX/DL/DI, internal type06. DF0/valid nonaliased storage and ordinary stack required; alternate3B48/drain/allocators opaque.");
+        code(c, 0xf90, 0x3588, 0x359b, "construct_class0a", "R182:after3E85 set class0A,zero0A,return currentES inAX;08 NOT initialized.");
+        code(c, 0xf90, 0x35dd, 0x35ee, "construct_class0c", "R164:after3E85 set class0C,posthelperBP→0A,return currentES inAX;08 NOT initialized.");
+        code(c, 0xf90, 0x35ee, 0x3618, "construct_class0d", "R176:class0D;posthelperBP/BX/DX/SI/DI→0A/0C/0E/10/12,CH→14. Fresh selected caller givesCH0, not selector-one observation;08 NOT initialized.");
+        code(c, 0xf90, 0x3e85, 0x3ecd, "link_class_record", "R164:two-paragraph request, global linking precedes06/05 stores;clears only1C/1E. Explicit saves restore AX/CX, not blanket zero-fill or arbitrary descendant preservation.");
+        code(c, 0xf90, 0x4ac7, 0x4ae5, "walk_class_callback_bx", "R164:save CURRENT record02 before class04 comparison and conditional CALL BX;restore saved next plus AX/BX. Valid acyclic list/normal returns required, not reread-next semantics.");
+        code(c, 0xf90, 0x466f, 0x469d, "publish_class0a_index", "R182:5107 fresh current6F2E return→record08 BEFORE link walk. Current linked0A reread AFTER512F; terminal5142, not arbitrary originalES restoration.");
+        code(c, 0xf90, 0x469d, 0x46cf, "publish_class0d_index", "R176:current14 normalized0/1,read current0C/0E/10/12;524B actual fresh current6F32 return→08. Not class0C payload semantics.");
+        code(c, 0xf90, 0x4703, 0x472d, "publish_class0c_index", "R164:current06/05→5201,restore recordES,actual fresh current6F32 return→08 before optional tail. Counter wrap allowed;no universal first-index-one.");
+        code(c, 0xf90, 0x4a96, 0x4ac7, "consume_current_class_index", "R157/R164:current queued handle08 and04 supply numeric method table then5446. Class0A→01,0C/0D→02;not formal LOCAT/FIXDAT or captured historical queue association.");
+        code(c, 0, 0x8c61, 0x8c90, "push_sign_extension_cf", "RF08:call-free;06 zero,04:04 clear,CBW low byte requires AH=current0B. Current705E:04 additionally requires CWD DX=current0C. CF0 admits sign extension, CF1 rejects;not a numeric bool, source-type or actual historical operand trace.");
+        code(c, 0, 0xf606, 0xf645, "padding_gate_zf", "TI04/R207:consumeF687 ZF;fresh70AB:80/706C tests. Six work descendants274E,F827,2283,F6BA,22A9,23DD opaque;explicit XOR/DEC givesALFF/ZF0,other routeAL0/ZF1,AH not guaranteed. Saves BX/CX/DX on work route,not SI/ES/DS purity.");
+        code(c, 0, 0xf687, 0xf6ba, "current_state_predicate_zf", "TI04:after optional074B, F69A FRESH70AF compare defines normal ZF1 exactly when that byte0;later current tests/explicit XOR DEC giveZF0. AL is not constant on direct returns;leaf flags do not define final predicate.");
+        code(c, 0xf90, 0x074b, 0x0758, "conditional_store_leaf", "TI04:call-free43C3:80 test;clear writes4598=1,otherwise none. Does not supply finalF687 flags;validDS/stack and noninterfering storage required.");
+        code(c, 0, 0x461e, 0x4694, "conditional_nop_fill", "TI01/R193/R199:SUB/SBB saved endpoint-current position;borrow has separate correction path. Nonborrow lowAX0 returns even ifDX nonzero.43C4 nonzero/43D6:08 clear adjusts record then BYPASSES7064 gate. Other route PUSHAX/CALLF606/POPAX consumes ZF,not AX.7064:08 diagnostic may return and fall through;465F uses THEN-CURRENT AX.4665 reloadsAL90 each iteration,emits into fresh buffer,then36D6. Conditional trailing90 is NOT linker's leading90 rewrite or proof of a historical CALL instance.");
+        code(c, 0, 0x4694, 0x46b2, "correct_replay_record", "TI01:sets43DC=FF;05:10 chooses SUB record0C,AX else SUB06,AX/SBB08,DX. Does not changeAX/DX;not blanket signed subtraction or shrink-success return.");
         log.appendMsg(ID, "Exact original-file TASM3.1 CALL, replay, expression, internal-record, returned-flag and literal-control facts applied. Current runtime state, external OMF identities and historical producer/settings remain unproved.");
     }
 
@@ -208,15 +259,6 @@ public final class Tasm31Profile extends ToolchainProfile {
     }
 
     private void applyCall(Context c) throws Exception {
-        code(c, 0, 0x6c4d, 0x6c8d, "encode_call", "R119/TI01: current tag29 and8C90 CF choose ordinary16-bit four-byte0E E8 or five-byte9A. Four-byte branch has NO NOP; later linker90 0E E8 rewrite is distinct. Three terminal tails to36D6; alternative indirect/operand-size descendants remain opaque.");
-        code(c, 0, 0x8c90, 0x8d01, "call_far_predicate_cf", "R119/R145: CF1 retains FAR. Requires current SMART705E:20, zero operand06 and qualified identity. Ordinary branch installs postlookup AX as ES (including0), reads1A BEFORE04, then restores operand ES/CX; not simply7060 equality. IDEAL branch normalizes target first/current second. No numeric AX-bool contract.");
-        code(c, 0, 0x7caa, 0x7ce9, "emit_near_operand", "R152/TI01: ordinary16-bit branch includes already emitted prefix count in displacement, prepares current operand, emits CL then word.8DF7 CF1 alternate width is separate; opaque helpers are not assumed to preserve arbitrary registers.");
-        code(c, 0, 0x7ce9, 0x7d0a, "emit_far_operand", "R119/TI01: ordinary16-bit branch emits CL9A plus low offset/word16; alternative-width branch is not generalized. Terminal tail910F, not inline data.");
-        code(c, 0, 0x40f6, 0x4113, "emit_byte", "TI01: writes AL at6F4E+old6F4C, increments word count, ancillary425E conditional. Adjacent4113 literal90 is NOT part of body or NOP-fill owner.");
-        code(c, 0, 0x4114, 0x412f, "emit_word", "TI01: current AX write/count+2; tails425E. Adjacent412F excluded.");
-        code(c, 0, 0x4130, 0x414f, "emit_word_pair", "TI01: current AX/CX write/count+4; tails425E. No flat pointer prototype.");
-        code(c, 0, 0x7e82, 0x7e94, "prepare_call_operand", "R133: save operand ES to7406, reset emission, explicitly save CX around9698. Materialization effects remain conditional.");
-        code(c, 0, 0x7f4b, 0x7f6e, "classify_immediate_cf", "R139 corrected complete end includes failure RET7F6D. Tags28/29 accepted CF0; tag20 has additional current mode/word14 tests.");
         words(c, DATA_FILE + 0x2724, 554, "token_dispatch_words554");
         c.comment(DATA_FILE + 0x2724, "R119/TI01: initial DS-relative near dispatch table,554 words. Selected current token minus7618 is range-checked before indirect dispatch; raw entries are not unconditional calls or554 proved complete functions. Initialized-data projection18310+DS is conditional on the startup-selected segment, not every live DS.");
         reference(c, DATA_FILE + 0x27ba, 0x800 + 0xcf05);
@@ -228,12 +270,6 @@ public final class Tasm31Profile extends ToolchainProfile {
     }
 
     private void applyReplay(Context c) throws Exception {
-        code(c, 0, 0x45b3, 0x461e, "restore_replay_record", "TI01: record05:10 compact restores selected fields/endpoint; otherwise forward20-word06..2E→7050..7078 requires DF0 and valid DS/SS. Regenerates7078 callback after restore;05:20 invokes near record30 with DI32. Current ES/DS changes are real.");
-        code(c, 0, 0x46f5, 0x4715, "snapshot_and_dispatch", "TI01: forward24-word7050..7080→71B6..71E6 includes7078 at71DE; indirect CALL[7078]. AFTER callback freshly rereads7056/7058 to overwrite71B6/71B8; no arbitrary callback/global/record-ES preservation.");
-        code(c, 0, 0x4715, 0x4793, "admit_replay_record", "TI01:47F2 returned CF selects compact/full. One paragraph compact; three paragraphs full with20-word snapshot copy ending before71DE; extension size derives from current707A, stores2E/30 and invokes snapshot71E2 with DI32. Valid finite allocation/DF/aliases remain conditions.");
-        code(c, 0, 0x4793, 0x47f2, "allocate_link_replay_record", "TI01: paragraph pool71EA/71EC, save record ES around3016, store actual returned AX at02;04 uses current43D7 plus POST3016 CX. LES/XCHG list insertion stores replaced selector at00. Allocator descendants opaque.");
-        code(c, 0, 0x47f2, 0x4822, "compact_replay_predicate_cf", "TI01: rejects extension71E4, missing prior71F2 or14-word current context mismatch; SUB/SBB endpoint difference returns CF, not only numeric low difference. REPE comparison geometry requires DF0/valid storage.");
-        code(c, 0xf90, 0x66d2, 0x675a, "select_replay_callback", "TI01: current705F:10 selects F3A9 versusF50D into7078. Clear branch indexes current7077*8 into selected2BC8/2C68/2B78/2C18; set branch indexes2CB8 by*4. Valid table/state extent conditional; selection is not historical pass attribution.");
         c.label(0x800 + 0xf3a9, "tasm31_callback_f3a9_prefix");
         c.label(0x800 + 0xf50d, "tasm31_callback_f50d_prefix");
         c.comment(0x800 + 0xf3a9, "TI01: selected callback/dispatch partition, not a proved complete single function. F419..F431 token range check/indirect dispatch; descendants opaque. F50D has corresponding F535..F540 branch.");
@@ -253,22 +289,9 @@ public final class Tasm31Profile extends ToolchainProfile {
     }
 
     private void applyExpressions(Context c) throws Exception {
-        code(c, 0, 0x4b89, 0x4bdf, "finalize_expression", "R139:05 bit10 has priority; save POST5989 word04 across95FB. Bit20-only calls6311 then FRESH word04. After4BED read CURRENT05:40, transfer current25&0F→tag and1C→02. Deferred29 becomes09, not an unconditional FAR encoder request.");
-        code(c, 0, 0x4bed, 0x4bfc, "materialize_expression", "R139:5F26→9698,600F,6096,4BFC then tail5F2D reloads CURRENT global7406 as ES. Not arbitrary record/global preservation.");
-        code(c, 0, 0x4bfc, 0x4c2c, "mask_materialized_tag", "R139:clear tag20,set04:80; conditional04:08 and05 nibble updates. Immediate29 can become09 independently of deferred transfer.");
-        code(c, 0, 0x5989, 0x59eb, "save_tag_or_resolve_identity", "R139:tag20 saves00/02→25/1C then clears tag/value and pending fields;4B89 immediately95FB discards this temporary saved tag. Other branch stores actual returned170A CX to18. Descendant effects qualified.");
-        code(c, 0, 0x95fb, 0x960c, "clear_deferred_tag", "R133/R139:clear05:40,25,1C only; not pending06 or identity18.");
-        code(c, 0, 0x6311, 0x6361, "transfer_pending_identity", "R139:copy1E/20→14/16 before tag test; only nonzero22 updates18 and conditionally1A/current subtype/04:04. Does not directly write pending06; not transitive preservation.");
-        code(c, 0, 0x1a48, 0x1a51, "lookup_expression", "R145:1C65 selects state in ES, tail4A75 with DI08; sometimes AX0 while ES remains selected state. No unconditional pointer-return prototype.");
-        code(c, 0, 0x1c65, 0x1ce7, "select_symbol_state", "R145:current43D6/cache0E selects state; strictJA successor choice versus initialJAE, conditional cache write. Valid terminating links/finite arithmetic required; returned ES need not equal AX.");
-        code(c, 0, 0x4a75, 0x4ac6, "reconstruct_selected_expression", "R145:nonzero state08→fresh scalar;else nonzero0A→fresh cached40-byte copy after REREADING0A postallocation;else AX0 leaves ES selected. Qualified normal returns CF0/ZF1, not constant AX or safe null-record. DF0/valid storage/aliases conditional.");
-        AddressSet allocation = c.range(0x50cc, 0x50e2);
-        allocation.add(c.range(0x50f2, 0x511a));
-        c.function(0x50cc, allocation, "tasm31_allocate_expression_view", 0, "R145 qualified allocation body FILE[50cc,50e2)+[50f2,511a), logical0:[48cc,48e2)+[48f2,491a). THREE-paragraph pool allocation is independent of the40-byte clear/copy. Ordinary fallthrough48de→48e2 reaches the separately called clear entry; final4918 backedge reaches48d3. No exclusive ownership of that shared routine. Nonlocal exhaustion and opaque allocator descendants are not normal returns.");
-        code(c, 0, 0x48e2, 0x48f2, "clear_expression_view", "R145 shared clear entry: genuine near CALL at logical0:5137/FILE5937 targets48e2/FILE50e2, independently of allocation entry48cc. XORAX/MOVDIAX/MOVCX14h/REPSTOSW clear40 bytes then set byte10=1; DF=0, valid selected ES storage and aliases remain conditions. This clear size is not the THREE-paragraph pool allocation.");
+        // Allocation and its shared clear-entry function are applied in the late phase.
         c.label(0x5937, "tasm31_expression_clear_near_call");
         c.comment(0x5937, "Original E8a8f7 near CALL targets shared clear entry logical0:48e2/FILE50e2, not allocation entry48cc. No runtime execution or allocator success inferred.");
-        code(c, 0, 0x950c, 0x952e, "map_type_word_to_al", "R133:negative branch complements ALL16 AX bits;FFFE→0001→table09. Only AL replaced, AH not zero-extended. OR20 by caller forms29.");
         c.data(0x1a20c, new ArrayDataType(BYTE, 3, 1));
         c.label(0x1a20c, "tasm31_negative_type_map_08_09_01");
         words(c, 0x1a21e, 1, "ordinary_far_type_fffe");
@@ -276,29 +299,12 @@ public final class Tasm31Profile extends ToolchainProfile {
     }
 
     private void applyRecords(Context c) throws Exception {
-        code(c, 0, 0x1adc, 0x1b02, "project_current_handle", "R152:current handle07 bit20 clear returns word0E on ALL masked-class alternatives;bit20 set returns10. Numeric projections, not formal external IDs.");
-        code(c, 0xf90, 0x3bb2, 0x3c65, "append_internal_queue9", "R152:normal existing-block route publishes updated06 before nine ordered stores CL,BX,DX,SI,saved DI. New-block route uses POST3F38 returnedAX/DL/DI, internal type06. DF0/valid nonaliased storage and ordinary stack required; alternate3B48/drain/allocators opaque.");
-        code(c, 0xf90, 0x3588, 0x359b, "construct_class0a", "R182:after3E85 set class0A,zero0A,return currentES inAX;08 NOT initialized.");
-        code(c, 0xf90, 0x35dd, 0x35ee, "construct_class0c", "R164:after3E85 set class0C,posthelperBP→0A,return currentES inAX;08 NOT initialized.");
-        code(c, 0xf90, 0x35ee, 0x3618, "construct_class0d", "R176:class0D;posthelperBP/BX/DX/SI/DI→0A/0C/0E/10/12,CH→14. Fresh selected caller givesCH0, not selector-one observation;08 NOT initialized.");
-        code(c, 0xf90, 0x3e85, 0x3ecd, "link_class_record", "R164:two-paragraph request, global linking precedes06/05 stores;clears only1C/1E. Explicit saves restore AX/CX, not blanket zero-fill or arbitrary descendant preservation.");
-        code(c, 0xf90, 0x4ac7, 0x4ae5, "walk_class_callback_bx", "R164:save CURRENT record02 before class04 comparison and conditional CALL BX;restore saved next plus AX/BX. Valid acyclic list/normal returns required, not reread-next semantics.");
-        code(c, 0xf90, 0x466f, 0x469d, "publish_class0a_index", "R182:5107 fresh current6F2E return→record08 BEFORE link walk. Current linked0A reread AFTER512F; terminal5142, not arbitrary originalES restoration.");
-        code(c, 0xf90, 0x469d, 0x46cf, "publish_class0d_index", "R176:current14 normalized0/1,read current0C/0E/10/12;524B actual fresh current6F32 return→08. Not class0C payload semantics.");
-        code(c, 0xf90, 0x4703, 0x472d, "publish_class0c_index", "R164:current06/05→5201,restore recordES,actual fresh current6F32 return→08 before optional tail. Counter wrap allowed;no universal first-index-one.");
-        code(c, 0xf90, 0x4a96, 0x4ac7, "consume_current_class_index", "R157/R164:current queued handle08 and04 supply numeric method table then5446. Class0A→01,0C/0D→02;not formal LOCAT/FIXDAT or captured historical queue association.");
         c.data(0x19fc4, new ArrayDataType(BYTE, 14, 1));
         c.label(0x19fc4, "tasm31_internal_class_method14");
         c.comment(0x19fc4, "R164/R176/R182:literal method map00x10,01,00,02,02;internal class0A/0C/0D domain. Not serialized record tags or a complete external OMF schema.");
     }
 
     private void applyFlagHelpers(Context c) throws Exception {
-        code(c, 0, 0x8c61, 0x8c90, "push_sign_extension_cf", "RF08:call-free;06 zero,04:04 clear,CBW low byte requires AH=current0B. Current705E:04 additionally requires CWD DX=current0C. CF0 admits sign extension, CF1 rejects;not a numeric bool, source-type or actual historical operand trace.");
-        code(c, 0, 0xf606, 0xf645, "padding_gate_zf", "TI04/R207:consumeF687 ZF;fresh70AB:80/706C tests. Six work descendants274E,F827,2283,F6BA,22A9,23DD opaque;explicit XOR/DEC givesALFF/ZF0,other routeAL0/ZF1,AH not guaranteed. Saves BX/CX/DX on work route,not SI/ES/DS purity.");
-        code(c, 0, 0xf687, 0xf6ba, "current_state_predicate_zf", "TI04:after optional074B, F69A FRESH70AF compare defines normal ZF1 exactly when that byte0;later current tests/explicit XOR DEC giveZF0. AL is not constant on direct returns;leaf flags do not define final predicate.");
-        code(c, 0xf90, 0x074b, 0x0758, "conditional_store_leaf", "TI04:call-free43C3:80 test;clear writes4598=1,otherwise none. Does not supply finalF687 flags;validDS/stack and noninterfering storage required.");
-        code(c, 0, 0x461e, 0x4694, "conditional_nop_fill", "TI01/R193/R199:SUB/SBB saved endpoint-current position;borrow has separate correction path. Nonborrow lowAX0 returns even ifDX nonzero.43C4 nonzero/43D6:08 clear adjusts record then BYPASSES7064 gate. Other route PUSHAX/CALLF606/POPAX consumes ZF,not AX.7064:08 diagnostic may return and fall through;465F uses THEN-CURRENT AX.4665 reloadsAL90 each iteration,emits into fresh buffer,then36D6. Conditional trailing90 is NOT linker's leading90 rewrite or proof of a historical CALL instance.");
-        code(c, 0, 0x4694, 0x46b2, "correct_replay_record", "TI01:sets43DC=FF;05:10 chooses SUB record0C,AX else SUB06,AX/SBB08,DX. Does not changeAX/DX;not blanket signed subtraction or shrink-success return.");
         c.comment(0x800 + 0x464a, "TI04: PUSH AX;CALLF606;POP AX;JNE4670 restores residualAX WITHOUT changing returnedZF. Later diagnostic can still change currentAX;no pure AX-bool prototype applied.");
         c.comment(0x800 + 0x4665, "TI01 literal NOP supplier MOV AL,90 within461E..4694;reload every loop. Positive route reaches LOOP even for currentCX0, yielding65536 iterations under stable ordinary state;not unrestricted safe padding length.");
     }

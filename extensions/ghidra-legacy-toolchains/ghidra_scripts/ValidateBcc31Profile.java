@@ -10,6 +10,8 @@ import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.Bcc31Profile;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -41,7 +43,8 @@ public class ValidateBcc31Profile extends GhidraScript {
         require(context.original().getOriginalBytes(0, original) == original.length && Arrays.equals(expected, original), "Imported original must literally equal the named source input, not relocated memory");
         MessageLog log = new MessageLog();
         if (args[2].equals("direct")) {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
             result.append("EXPLICIT DIRECT PROFILE APPLICATION; automatic registry activation not asserted.\n");
         }
         else {
@@ -152,6 +155,27 @@ public class ValidateBcc31Profile extends GhidraScript {
         println("BCC31 PROFILE VALIDATION PASS (" + args[2] + "): original bytes, native data/enum/reference/function outcomes and preservation. " + args[1]);
     }
 
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
     private void callbacks(long start) throws Exception {
         var data = currentProgram.getListing().getDefinedDataAt(context.mapped(start));
         require(data != null && data.getLength() == 104 && data.getDataType() instanceof Array && ((Array) data.getDataType()).getNumElements() == 26, "Expected26 native four-byte FAR storage cells");
@@ -184,9 +208,11 @@ public class ValidateBcc31Profile extends GhidraScript {
     private void rerun(Bcc31Profile profile, boolean automatic, MessageLog log) throws Exception {
         if (automatic) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production analyzer rerun failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
     }
 

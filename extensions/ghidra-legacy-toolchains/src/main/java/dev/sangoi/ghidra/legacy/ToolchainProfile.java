@@ -66,7 +66,11 @@ public abstract class ToolchainProfile {
         return null;
     }
 
-    public abstract void apply(Context context, TaskMonitor monitor, MessageLog log) throws Exception;
+    /** Qualified data, datatype preparation and necessary native address projections, before inference. */
+    public abstract void prepareData(Context context, TaskMonitor monitor, MessageLog log) throws Exception;
+
+    /** Final qualified code extents, cleanup and function contracts, after ordinary analysis. */
+    public abstract void applyFinalFacts(Context context, TaskMonitor monitor, MessageLog log) throws Exception;
 
     public static final class Context {
         private final Program program;
@@ -158,8 +162,24 @@ public abstract class ToolchainProfile {
             if (existing != null && existing.getLength() == type.getLength() && existing.getDataType().isEquivalent(type)) {
                 return;
             }
-            requireAnalysisOwned(body);
-            for (Function function : overlapping(body)) {
+            // Native clearing removes whole intersecting units, including one starting before body.
+            AddressSet affected = new AddressSet(body);
+            var first = listing.getCodeUnitContaining(body.getMinAddress());
+            var last = listing.getCodeUnitContaining(body.getMaxAddress());
+            if (first != null) {
+                affected.addRange(first.getMinAddress(), first.getMaxAddress());
+            }
+            if (last != null) {
+                affected.addRange(last.getMinAddress(), last.getMaxAddress());
+            }
+            requireAnalysisOwned(affected);
+            var conflicts = listing.getDefinedData(affected, true);
+            if (conflicts.hasNext()) {
+                var conflict = conflicts.next();
+                // Defined data has no source-priority ownership. Original identity is not overwrite permission.
+                throw new IllegalStateException(marker + " preserving conflicting defined data " + conflict.getDataType().getPathName() + " at " + conflict.getMinAddress() + " through " + conflict.getMaxAddress());
+            }
+            for (Function function : overlapping(affected)) {
                 // Exact original data is authoritative over auto-created code, not user functions.
                 program.getFunctionManager().removeFunction(function.getEntryPoint());
             }

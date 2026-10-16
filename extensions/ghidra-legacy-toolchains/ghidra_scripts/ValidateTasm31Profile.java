@@ -11,6 +11,8 @@ import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.Tasm31Profile;
 import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.data.Array;
@@ -48,7 +50,8 @@ public class ValidateTasm31Profile extends GhidraScript {
             result.append("Initial production analyzer activation observed; no direct fallback.\n");
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
             result.append("EXPLICIT DIRECT APPLICATION: canonical profile invoked by this script; automatic registry activation is NOT proved.\n");
         }
         checkFunction(0x744d, 0x748d, 22);
@@ -124,12 +127,35 @@ public class ValidateTasm31Profile extends GhidraScript {
         println("TASM31 PROFILE VALIDATION PASS (" + args[2] + "): exact FileBytes, native MZ mapping/relocations/references, selected complete functions, partial layouts, tables, current-value qualifications, repeated application and user-source preservation.");
     }
 
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
     private void rerun(MessageLog log) throws Exception {
         if (automatic) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production analyzer rerun failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
     }
 

@@ -34,12 +34,52 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
     }
 
     @Override
-    public void apply(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+    public void prepareData(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
         monitor.checkCancelled();
         startup(c);
         formatting(c);
         exit(c);
         exceptions(c);
+    }
+
+    @Override
+    public void applyFinalFacts(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
+        monitor.checkCancelled();
+        body(c, NE1, 0xc9, 0xdb, "crt45_candidate_cleanup", 0, "SF02 complete cleanup FAR-return body; conditional dispatcher effects remain unproved.");
+        body(c, NE1, 0xdb, 0xdc, "crt45_candidate_checknull", 0, "SF02 one-byte RETF public, not a noreturn assertion.");
+        body(c, NE1, 0xdc, 0xdd, "crt45_candidate_restorezero", 0, "SF02 one-byte RETF public.");
+        body(c, NE1, 0xf2, 0xf5, "crt45_candidate_GetDGROUP", 0, "SF02 supplier __GetDGROUP; MOV AX,SS; RETF. No invented return type.");
+        body(c, NE1, 0xf5, 0x139, "startup_init_dispatch", 0, "SF02 complete near dispatcher; analysis name, not another vendor public. Six-byte record traversal and conditional near/FAR calls do not prove actual table population.");
+        body(c, NE1, 0x139, 0x17a, "startup_exit_dispatch", 0, "SF02 complete near dispatcher; analysis name. Shared136-byte suffix is not release-discriminating.");
+        body(c, NE1, 0x2e24, 0x2e69, "sprintf_copy_callback", 10, "SPRF01 near callback69; mutable destination-pair context and reread count, not a modern callback prototype. Same-library memcpy38 correspondence is separately owned by far-copy analysis.");
+        body(c, NE1, 0x2e69, 0x2e90, "crt45_candidate_sprintf", 0, "SPRF01 FAR wrapper39; constructs SS-relative trailing argument cursor, initializes destination before later argument reads. No va_list, signed-return or pointer-validity assertion.");
+        body(c, NE1, 0x2e90, 0x2eb6, "crt45_candidate_vsprintf", 0, "SPRF01 FAR wrapper38 reads supplied cursor WORD; not proof of modern va_list or complete formatting semantics.");
+        // Ordinary native analysis independently owns the scanner13, emitter entry9 and flush52. The initial JMP skips all74 helper bytes; join the main entry and its native continuation, not the entire member region.
+        var primary = c.range(NE1 + 0x200a, NE1 + 0x2024);
+        primary.add(c.range(NE1 + 0x206e, NE1 + 0x249b));
+        c.function(NE1 + 0x200a, primary, "simtower_crt45_candidate_VPRINTER", 12, QUALIFICATION + " SPRF02 [200a,249b)1169 is regional correspondence coverage, not exclusive function ownership. Main native body joins entry[200a,2024) and continuation[206e,249b),1095 bytes; JMP2022 skips independent helpers[2024,206e). Terminal LEAVE; RET0c precedes data. Complete engine effects/servicing remain unreviewed.");
+        originalWord(c, NE1 + 0x2022, 0x4aeb);
+        var mainJump = c.program().getListing().getInstructionAt(c.mapped(NE1 + 0x2022));
+        if (mainJump.getFlowOverride() == FlowOverride.CALL_RETURN) {
+            // Retained ordinary analysis had split206e into a function and changed this exact JMP into CALL/RETURN pcode. Its joined continuation must use the original branch, not a synthetic callee.
+            mainJump.setFlowOverride(FlowOverride.NONE);
+        }
+        c.comment(NE1 + 0x2022, "SPRF02 original EB4A JMP ->206e joins the main continuation. Remove only this demonstrated stale CALL_RETURN override; no general flow-override cleanup.");
+        c.function(NE1 + 0x2024, c.range(NE1 + 0x2024, NE1 + 0x2031), "simtower_vprinter_scan_entry", UNKNOWN, QUALIFICATION + " SPRF02 native scanner13; real near CALLs22db/233b/236d and RET2030. No register-result prototype or stronger cleanup inferred.");
+        c.function(NE1 + 0x2031, c.range(NE1 + 0x2031, NE1 + 0x203a), "simtower_vprinter_emit_entry", UNKNOWN, QUALIFICATION + " SPRF02 native exclusive emitter entry9, not a standalone returning nine-byte helper. SS:[DI] store/increment, parent-frame BYTE[BP-14] decrement; conditional2038 reaches shared RET206d, otherwise falls through to flush entry203a. Shared tail[203a,206e) remains owned by the native flush function; no overlapping function, synthetic callee or net cleanup/prototype inferred.");
+        c.function(NE1 + 0x203a, c.range(NE1 + 0x203a, NE1 + 0x206e), "simtower_vprinter_flush_entry", UNKNOWN, QUALIFICATION + " SPRF02 native flush52 shares RET206d with emitter entry2031. Parent BP/current-frame callback[BP+e] at2051 has unknown callee contract. Native exclusive partition does not make the emitter's shared suffix disjoint code or establish standalone C parameters, callback effects or net cleanup.");
+        int[][] exitBodies = { {0x3e6a,0x3e6f,0}, {0x3e6f,0x3eeb,6}, {0x3eeb,0x3f00,0}, {0x3f00,0x3f15,0}, {0x3f15,0x3f23,0}, {0x3f23,0x3f31,0} };
+        String[] exitNames = { "exit_dummy", "exit_local_helper", "exit", "_exit", "_cexit", "_c_exit" };
+        for (int i = 0; i < exitBodies.length; i++) {
+            int[] b = exitBodies[i];
+            body(c, NE1, b[0], b[1], "crt45_candidate_" + exitNames[i], b[2], "CRT03 exit.c member; five wrappers/dummy literal, helper124 has all41 raw CODE differences. Fifteen CODE sites/25 rows. Matching wrapper bytes do not prove noreturn or complete subordinate effects." + (i >= 4 ? " Original incoming coverage for this name candidate unproved." : ""));
+        }
+        int[][] bodies = { {0,0xa}, {0xa,0x66}, {0x90,0x143}, {0x143,0x14c}, {0x14c,0x1a8}, {0x1a8,0x22b}, {0x22b,0x27f}, {0x27f,0x2d7}, {0x2d7,0x351} };
+        String[] names = { "terminate", "set_terminate", "call_terminate", "unexpected", "set_unexpected", "call_unexpected", "GetPolymorphicDTC", "GetPolymorphicDTCfar", "ExceptInit" };
+        String[] publics = { "@terminate$qv", "@set_terminate$qnqv$v", "___call_terminate", "@unexpected$qv", "@set_unexpected$qnqv$v", "___call_unexpected", "@__GetPolymorphicDTC$qnvui", "@__GetPolymorphicDTCfar$qnvui", "__ExceptInit" };
+        for (int i = 0; i < bodies.length; i++) {
+            body(c, NE79, bodies[i][0], bodies[i][1], "crt45_candidate_" + names[i], UNKNOWN, "CRT03 original NE79 complete selected code-entry region; exact supplier public " + publics[i] + ". Whole849-byte CODE differs83 field/window bytes. unexpected9 and the two DTC bodies84/88 are literal. No pointer/return prototype or noreturn inferred; cleanup left native UNKNOWN.");
+        }
         log.appendMsg(ID, "Qualified startup, SPRINTF, VPRINTER, EXIT and XXV native boundaries/data/bindings applied. No complete CRT binding, historical compiler attribution, modern prototypes, noreturn or unknown BSS placement inferred.");
     }
 
@@ -79,12 +119,6 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
         c.comment(NE1 + 0x56, "Supplier public __INITAPPCALLED; an internal startup point, not an additional proved whole function.");
         c.comment(NE1 + 0xb2, "Supplier public __WINMAINCALL; internal startup point. Native FAR binding at00b3 targets NE78:0013; WINMAIN is a vendor candidate, not a retained original name.");
         c.comment(NE1 + 0xdd, "Supplier __terminate candidate; original DOS-interrupt/converted-call sequence [00dd,00f2). No noreturn or complete C prototype inferred.");
-        body(c, NE1, 0xc9, 0xdb, "crt45_candidate_cleanup", 0, "SF02 complete cleanup FAR-return body; conditional dispatcher effects remain unproved.");
-        body(c, NE1, 0xdb, 0xdc, "crt45_candidate_checknull", 0, "SF02 one-byte RETF public, not a noreturn assertion.");
-        body(c, NE1, 0xdc, 0xdd, "crt45_candidate_restorezero", 0, "SF02 one-byte RETF public.");
-        body(c, NE1, 0xf2, 0xf5, "crt45_candidate_GetDGROUP", 0, "SF02 supplier __GetDGROUP; MOV AX,SS; RETF. No invented return type.");
-        body(c, NE1, 0xf5, 0x139, "startup_init_dispatch", 0, "SF02 complete near dispatcher; analysis name, not another vendor public. Six-byte record traversal and conditional near/FAR calls do not prove actual table population.");
-        body(c, NE1, 0x139, 0x17a, "startup_exit_dispatch", 0, "SF02 complete near dispatcher; analysis name. Shared136-byte suffix is not release-discriminating.");
         StructureDataType data = partial("StartupData70Partial", 70, "SF02 complete initialized C0WL45 DATA70 literally equals NE82[0030,0076). Stored placement bias0030, not observed live DS.");
         int[] offsets = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 25 };
         String[] names = { "protected_word", "processor_word", "coprocessor_word", "psp_word", "instance_word", "previous_instance_word", "command_offset_word", "show_word", "version_word", "abend_test_word" };
@@ -111,9 +145,6 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
     }
 
     private void formatting(Context c) throws Exception {
-        body(c, NE1, 0x2e24, 0x2e69, "sprintf_copy_callback", 10, "SPRF01 near callback69; mutable destination-pair context and reread count, not a modern callback prototype. Same-library memcpy38 correspondence is separately owned by far-copy analysis.");
-        body(c, NE1, 0x2e69, 0x2e90, "crt45_candidate_sprintf", 0, "SPRF01 FAR wrapper39; constructs SS-relative trailing argument cursor, initializes destination before later argument reads. No va_list, signed-return or pointer-validity assertion.");
-        body(c, NE1, 0x2e90, 0x2eb6, "crt45_candidate_vsprintf", 0, "SPRF01 FAR wrapper38 reads supplied cursor WORD; not proof of modern va_list or complete formatting semantics.");
         c.comment(NE1 + 0x2e24, "SPRF01 whole146-byte correspondence is not literal:13 differing bytes belong to five native supplier owners: one five-byte converted memcpy call, two callback offsets and two relative engine fields. No NE load-time relocation source intersects this region; actual candidate linkage unperformed.");
         converted(c, NE1, 0x2e3c, 0x1222, "SPRF01 supplier _memcpy; same-library CWL31/CWL45 bodies literally equal original38 bytes, not exclusive release attribution");
         offsetReference(c, NE1 + 0x2e77, 0x2e24, NE1 + 0x2e24, "SPRF01 callback offset, no selector/prototype inferred");
@@ -122,20 +153,6 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
         nearCall(c, NE1, 0x2eae, 0x200a, "SPRF01 second __VPRINTER call");
         c.label(NE1 + 0x1ff2, "simtower_vprinter_conversion_cluster24");
         c.comment(NE1 + 0x1ff2, "SPRF02 literal conversion cluster24, shared across inspected releases; multiple near entries share a suffix, not24 bytes of separately proved public functions.");
-        // Ordinary native analysis independently owns the scanner13, emitter entry9 and flush52. The initial JMP skips all74 helper bytes; join the main entry and its native continuation, not the entire member region.
-        var primary = c.range(NE1 + 0x200a, NE1 + 0x2024);
-        primary.add(c.range(NE1 + 0x206e, NE1 + 0x249b));
-        c.function(NE1 + 0x200a, primary, "simtower_crt45_candidate_VPRINTER", 12, QUALIFICATION + " SPRF02 [200a,249b)1169 is regional correspondence coverage, not exclusive function ownership. Main native body joins entry[200a,2024) and continuation[206e,249b),1095 bytes; JMP2022 skips independent helpers[2024,206e). Terminal LEAVE; RET0c precedes data. Complete engine effects/servicing remain unreviewed.");
-        originalWord(c, NE1 + 0x2022, 0x4aeb);
-        var mainJump = c.program().getListing().getInstructionAt(c.mapped(NE1 + 0x2022));
-        if (mainJump.getFlowOverride() == FlowOverride.CALL_RETURN) {
-            // Retained ordinary analysis had split206e into a function and changed this exact JMP into CALL/RETURN pcode. Its joined continuation must use the original branch, not a synthetic callee.
-            mainJump.setFlowOverride(FlowOverride.NONE);
-        }
-        c.comment(NE1 + 0x2022, "SPRF02 original EB4A JMP ->206e joins the main continuation. Remove only this demonstrated stale CALL_RETURN override; no general flow-override cleanup.");
-        c.function(NE1 + 0x2024, c.range(NE1 + 0x2024, NE1 + 0x2031), "simtower_vprinter_scan_entry", UNKNOWN, QUALIFICATION + " SPRF02 native scanner13; real near CALLs22db/233b/236d and RET2030. No register-result prototype or stronger cleanup inferred.");
-        c.function(NE1 + 0x2031, c.range(NE1 + 0x2031, NE1 + 0x203a), "simtower_vprinter_emit_entry", UNKNOWN, QUALIFICATION + " SPRF02 native exclusive emitter entry9, not a standalone returning nine-byte helper. SS:[DI] store/increment, parent-frame BYTE[BP-14] decrement; conditional2038 reaches shared RET206d, otherwise falls through to flush entry203a. Shared tail[203a,206e) remains owned by the native flush function; no overlapping function, synthetic callee or net cleanup/prototype inferred.");
-        c.function(NE1 + 0x203a, c.range(NE1 + 0x203a, NE1 + 0x206e), "simtower_vprinter_flush_entry", UNKNOWN, QUALIFICATION + " SPRF02 native flush52 shares RET206d with emitter entry2031. Parent BP/current-frame callback[BP+e] at2051 has unknown callee contract. Native exclusive partition does not make the emitter's shared suffix disjoint code or establish standalone C parameters, callback effects or net cleanup.");
         c.label(NE1 + 0x206d, "simtower_vprinter_emit_flush_shared_ret");
         c.comment(NE1 + 0x206d, "SPRF02 one physical RET, native owner flush203a; emitter2038 branches here. A shared tail relation, not duplicate code or a separate callee address.");
         c.data(NE1 + 0x249b, new ArrayDataType(WORD, 24, 2));
@@ -158,12 +175,6 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
     }
 
     private void exit(Context c) throws Exception {
-        int[][] bodies = { {0x3e6a,0x3e6f,0}, {0x3e6f,0x3eeb,6}, {0x3eeb,0x3f00,0}, {0x3f00,0x3f15,0}, {0x3f15,0x3f23,0}, {0x3f23,0x3f31,0} };
-        String[] names = { "exit_dummy", "exit_local_helper", "exit", "_exit", "_cexit", "_c_exit" };
-        for (int i = 0; i < bodies.length; i++) {
-            int[] b = bodies[i];
-            body(c, NE1, b[0], b[1], "crt45_candidate_" + names[i], b[2], "CRT03 exit.c member; five wrappers/dummy literal, helper124 has all41 raw CODE differences. Fifteen CODE sites/25 rows. Matching wrapper bytes do not prove noreturn or complete subordinate effects." + (i >= 4 ? " Original incoming coverage for this name candidate unproved." : ""));
-        }
         StructureDataType data = partial("ExitData14Partial", 14, "CRT03 complete initialized member contribution candidate NE82[1036,1044); six differing raw FAR-chain bytes, not whole DATA equality.");
         DataType far = farStorage(c);
         for (int i = 0; i < 3; i++) {
@@ -186,14 +197,8 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
     }
 
     private void exceptions(Context c) throws Exception {
-        int[][] bodies = { {0,0xa}, {0xa,0x66}, {0x90,0x143}, {0x143,0x14c}, {0x14c,0x1a8}, {0x1a8,0x22b}, {0x22b,0x27f}, {0x27f,0x2d7}, {0x2d7,0x351} };
-        String[] names = { "terminate", "set_terminate", "call_terminate", "unexpected", "set_unexpected", "call_unexpected", "GetPolymorphicDTC", "GetPolymorphicDTCfar", "ExceptInit" };
-        String[] publics = { "@terminate$qv", "@set_terminate$qnqv$v", "___call_terminate", "@unexpected$qv", "@set_unexpected$qnqv$v", "___call_unexpected", "@__GetPolymorphicDTC$qnvui", "@__GetPolymorphicDTCfar$qnvui", "__ExceptInit" };
         bytes(c, NE79 + 0x66, 42, "xxv_raw_table42");
         c.comment(NE79 + 0x66, "CRT03 xxv.cpp [0066,0090) raw table-like contribution, execution ownership unresolved; not a tenth function. Twenty-five member publics = nine code entries + fifteen DATA + one unplaced BSS, not25 code functions.");
-        for (int i = 0; i < bodies.length; i++) {
-            body(c, NE79, bodies[i][0], bodies[i][1], "crt45_candidate_" + names[i], UNKNOWN, "CRT03 original NE79 complete selected code-entry region; exact supplier public " + publics[i] + ". Whole849-byte CODE differs83 field/window bytes. unexpected9 and the two DTC bodies84/88 are literal. No pointer/return prototype or noreturn inferred; cleanup left native UNKNOWN.");
-        }
         c.comment(NE79 + 0x2d7, "CRT03 initializer122 has28 raw unequal field bytes. Genuine startup source NE1:0007 binds here. Complete exception semantics, imported/transitive servicing and integral member linkage remain unproved.");
         StructureDataType data = partial("XxvInitialized296Partial", 296, "CRT03 full initialized DATA placement candidate NE82[07ec,0914), four raw differing FAR-chain bytes. Public labels do not establish public field extents/types.");
         DataType far = farStorage(c);

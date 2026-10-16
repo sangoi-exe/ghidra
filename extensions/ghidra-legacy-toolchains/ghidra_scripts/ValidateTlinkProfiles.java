@@ -13,6 +13,8 @@ import dev.sangoi.ghidra.legacy.profiles.Tlink51Profile;
 import dev.sangoi.ghidra.legacy.profiles.TlinkWriterContract;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -56,7 +58,8 @@ public class ValidateTlinkProfiles extends GhidraScript {
             require(symbol != null, "Automatic activation must have occurred before the validator; never silently apply a missing profile");
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
             result.append("Explicit direct-profile application; not evidence of automatic registry activation.\n");
         }
         Function writer = checkFunction(start, start + 150, 51);
@@ -88,9 +91,11 @@ public class ValidateTlinkProfiles extends GhidraScript {
         String before = currentProgram.getListing().getComment(CommentType.PLATE, writer.getEntryPoint());
         if (args[2].equals("automatic")) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production analyzer rerun failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
         require(types == currentProgram.getDataTypeManager().getDataTypeCount(true) && symbols == currentProgram.getSymbolTable().getNumSymbols(), "Repeated application does not duplicate types/symbols");
         require(before.equals(currentProgram.getListing().getComment(CommentType.PLATE, writer.getEntryPoint())), "Repeated application does not duplicate writer qualification");
@@ -99,6 +104,27 @@ public class ValidateTlinkProfiles extends GhidraScript {
         result.append("No caller-propagation proof, historical C ABI/identity, dynamic selector/code alias, external service/physical-I/O success or debug import claimed. Runtime label is invocation metadata; C/HighFunction artifacts record actual observed output.\n").append(log);
         Files.writeString(output.resolve(profile.id() + "-validation.txt"), result);
         println("TLINK PROFILE VALIDATION PASS " + profile.id() + " " + args[2] + " " + args[3]);
+    }
+
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
     }
 
     private boolean contains(Varnode[] storage, String name) {

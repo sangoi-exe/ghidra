@@ -11,10 +11,14 @@ import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.SimTowerRuntimeProfile;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
+import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.data.Array;
+import ghidra.program.model.data.DataType;
 import ghidra.program.model.data.Structure;
+import ghidra.program.model.data.StructureDataType;
 import ghidra.program.model.data.UnsignedIntegerDataType;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.FlowOverride;
@@ -54,7 +58,8 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
             require(new ToolchainProfileAnalyzer().canAnalyze(currentProgram), "Production analyzer must recognize this exact image in automatic mode");
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
 
         mapping(1, 0x2200, 0x17a);
@@ -217,19 +222,104 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
         require(signature.equals(guarded.getPrototypeString(true, true)) && body.equals(guarded.getBody()) && guarded.getSignatureSource() == SourceType.USER_DEFINED, "Actual user-owned function/signature/body must survive reapplication");
         require(currentProgram.getListing().getComment(CommentType.PLATE, context.mapped(0x5069)).startsWith(userComment), "User comment must survive reapplication");
         result.append("Repeat: stable datatypes/labels/selected references/comment; actual user-owned function/signature/body/comment preserved. Disposable validation Program retains deliberate user annotation.\n");
+        dataPreservation();
         result.append("Limits: no game/CRT execution, candidate link, historical toolchain attribution, complete formatting/exception effects, modern prototypes or arbitrary BSS placement. Far-copy/F_SCOPY stronger contracts separately owned.\n");
         result.append(log).append('\n');
         Files.writeString(output.resolve("simtower-runtime-profile-validation.txt"), result);
         println("SIMTOWER RUNTIME PROFILE VALIDATION PASS: " + args[2] + ";28 selected native functions by group, VPRINTER regional versus primary/helper ownership and all13 real helper CALLs/shared tail, code/data/file mapping and all selected binding owners, repeat and user-annotation preservation. " + output);
     }
 
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
+        int logStart = manager.getMessageLog().toString().length();
+        StringBuilder finalLog = new StringBuilder();
+        // The manager clears its log after notifying completion listeners.
+        AutoAnalysisManagerListener listener = (completedManager, cancelled) -> {
+            String messages = completedManager.getMessageLog().toString();
+            if (!cancelled && messages.length() > logStart) {
+                finalLog.append(messages.substring(logStart));
+            }
+        };
+        manager.addListener(listener);
+        try {
+            analyzeChanges(currentProgram);
+        }
+        finally {
+            manager.removeListener(listener);
+        }
+        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
     private void repeat() throws Exception {
         if (automatic) {
             require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production repeated profile analysis failed: " + log);
+            analyzeProfileChanges(profile.id());
         }
         else {
-            profile.apply(context, monitor, log);
+            profile.prepareData(context, monitor, log);
+            profile.applyFinalFacts(context, monitor, log);
         }
+    }
+
+    private void dataPreservation() throws Exception {
+        var address = context.mapped(0x65030);
+        var listing = currentProgram.getListing();
+        DataType expected = listing.getDefinedDataAt(address).getDataType();
+        var symbols = currentProgram.getSymbolTable();
+        var references = currentProgram.getReferenceManager();
+        var symbol = symbols.createLabel(address.add(1), "validation_equivalent_data", SourceType.USER_DEFINED);
+        var reference = references.addMemoryReference(address, context.mapped(0x2200), RefType.DATA, SourceType.USER_DEFINED, 0);
+        var before = references.getReferencesFrom(address);
+        context.data(0x65030, expected);
+        require(listing.getDefinedDataAt(address).getDataType().isEquivalent(expected) && Arrays.equals(before, references.getReferencesFrom(address)) && symbol.getSource() == SourceType.USER_DEFINED, "Equivalent exact data must remain untouched, including higher-priority label and reference");
+        symbol.delete();
+        references.delete(reference);
+        result.append("DATA equivalent: exact70-byte type/extent, USER_DEFINED label and outgoing reference preserved without clearing.\n");
+
+        dataConflict(expected, "crossing", -2, 74, 0, false);
+        dataConflict(expected, "unsymbolized", 0, 70, -1, true);
+        dataConflict(expected, "tail", 68, 4, -1, false);
+        dataConflict(expected, "inside_symbol", 0, 70, 1, false);
+    }
+
+    private void dataConflict(DataType expected, String name, int delta, int length, int symbolOffset, boolean analyzer) throws Exception {
+        var listing = currentProgram.getListing();
+        var target = context.mapped(0x65030);
+        var start = target.add(delta);
+        var end = start.add(length - 1);
+        var references = currentProgram.getReferenceManager();
+        listing.clearCodeUnits(target.subtract(2), target.add(71), false);
+        var type = new StructureDataType("Validation_manual_" + name, length);
+        listing.createData(start, type);
+        var symbol = symbolOffset < 0 ? null : currentProgram.getSymbolTable().createLabel(start.add(symbolOffset), "validation_manual_" + name, SourceType.USER_DEFINED);
+        references.addMemoryReference(start, context.mapped(0x2200), RefType.DATA, SourceType.USER_DEFINED, 0);
+        references.addMemoryReference(end, context.mapped(0x2201), RefType.DATA, SourceType.USER_DEFINED, 0);
+        var firstReferences = references.getReferencesFrom(start);
+        var lastReferences = references.getReferencesFrom(end);
+        String refusal = null;
+        try {
+            context.data(0x65030, expected);
+        }
+        catch (IllegalStateException conflict) {
+            refusal = conflict.getMessage();
+        }
+        require(refusal != null && refusal.contains("preserving"), "Conflicting native data must be visibly refused: " + name);
+        if (analyzer) {
+            MessageLog conflictLog = new MessageLog();
+            require(!new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, conflictLog), "Production analyzer must report conflicting data as failure, not successful application");
+            require(conflictLog.toString().contains("preserving conflicting defined data") && !conflictLog.toString().contains("Applied " + profile.id()), "Production conflict log must expose refusal without success: " + conflictLog);
+        }
+        var preserved = listing.getDefinedDataAt(start);
+        require(preserved != null && preserved.getLength() == length && preserved.getMaxAddress().equals(end) && preserved.getDataType().isEquivalent(type), "Full conflicting type/extent must survive: " + name);
+        require(Arrays.equals(firstReferences, references.getReferencesFrom(start)) && Arrays.equals(lastReferences, references.getReferencesFrom(end)), "References at both ends of conflicting unit must survive: " + name);
+        require(symbol == null || symbol.getSource() == SourceType.USER_DEFINED, "Manual symbol must survive: " + name);
+        result.append("DATA ").append(name).append(": ").append(start).append(" through ").append(end).append(" length=").append(length).append(";type,full extent,both outgoing references and manual symbol preserved;refusal=").append(refusal).append(";production refusal checked=").append(analyzer).append('\n');
+        if (symbol != null) {
+            symbol.delete();
+        }
+        // Remove only the deliberately installed fixture, then restore the supported profile datum.
+        listing.clearCodeUnits(start, end, false);
+        context.data(0x65030, expected);
     }
 
     private void mapping(int ordinal, long start, int length) {
