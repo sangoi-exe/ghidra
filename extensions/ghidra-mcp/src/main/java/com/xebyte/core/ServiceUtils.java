@@ -59,7 +59,7 @@ public final class ServiceUtils {
     public static Response paged(String key, List<?> all, int offset, int limit,
             Map<String, ?> extras) {
         int start = Math.max(0, offset);
-        int end = (limit > 0) ? Math.min(all.size(), start + limit) : all.size();
+        int end = (limit > 0) ? (int) Math.min(all.size(), (long) start + limit) : all.size();
         List<?> page = (start >= all.size()) ? List.of() : all.subList(start, end);
         return pagedEnvelope(key, page, start, limit, all.size(), extras);
     }
@@ -98,7 +98,7 @@ public final class ServiceUtils {
      */
     public static Response pagedProgramItems(String kind, List<?> all, int offset, int limit) {
         int start = Math.max(0, offset);
-        int end = (limit > 0) ? Math.min(all.size(), start + limit) : all.size();
+        int end = (limit > 0) ? (int) Math.min(all.size(), (long) start + limit) : all.size();
         List<?> page = (start >= all.size()) ? List.of() : all.subList(start, end);
 
         Map<String, Object> out = new LinkedHashMap<>();

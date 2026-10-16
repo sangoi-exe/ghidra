@@ -10,7 +10,7 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-/** Offline coverage for {@link ServiceUtils#paged} and {@link ServiceUtils#pagedWindow}. */
+/** Offline coverage for the {@link ServiceUtils} pagination helpers. */
 public class ServiceUtilsPagedTest {
 
     @Test
@@ -23,6 +23,84 @@ public class ServiceUtilsPagedTest {
         assertEquals(1, data.get("offset"));
         assertEquals(1, data.get("limit"));
         assertEquals(3, data.get("total"));
+    }
+
+    @Test
+    public void pagedMaximumLimitDoesNotOverflow() {
+        Response r = ServiceUtils.paged("tags", List.of("a", "b"), 1, Integer.MAX_VALUE);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+        assertEquals(List.of("b"), data.get("tags"));
+        assertEquals(1, data.get("count"));
+        assertEquals(1, data.get("offset"));
+        assertEquals(Integer.MAX_VALUE, data.get("limit"));
+        assertEquals(2, data.get("total"));
+    }
+
+    @Test
+    public void pagedOffsetPastEndReturnsEmptyPage() {
+        Response r = ServiceUtils.paged("tags", List.of("a", "b"), Integer.MAX_VALUE, Integer.MAX_VALUE);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+        assertEquals(List.of(), data.get("tags"));
+        assertEquals(0, data.get("count"));
+        assertEquals(Integer.MAX_VALUE, data.get("offset"));
+        assertEquals(Integer.MAX_VALUE, data.get("limit"));
+        assertEquals(2, data.get("total"));
+    }
+
+    @Test
+    public void pagedProgramItemsMaximumLimitDoesNotOverflow() {
+        Response r = ServiceUtils.pagedProgramItems("functions", List.of("a", "b"), 1, Integer.MAX_VALUE);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+        assertEquals("functions", data.get("kind"));
+        assertEquals(List.of("b"), data.get("items"));
+        assertEquals(1, data.get("count"));
+        assertEquals(1, data.get("offset"));
+        assertEquals(Integer.MAX_VALUE, data.get("limit"));
+        assertEquals(2, data.get("total"));
+    }
+
+    @Test
+    public void pagedProgramItemsClampsNegativeOffset() {
+        Response r = ServiceUtils.pagedProgramItems("functions", List.of("a", "b"), -3, 10);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+        assertEquals("functions", data.get("kind"));
+        assertEquals(List.of("a", "b"), data.get("items"));
+        assertEquals(2, data.get("count"));
+        assertEquals(0, data.get("offset"));
+        assertEquals(10, data.get("limit"));
+        assertEquals(2, data.get("total"));
+    }
+
+    @Test
+    public void pagedProgramItemsNonPositiveLimitMeansNoLimitAndOmitsLimitKey() {
+        for (int limit : new int[] {0, -1}) {
+            Response r = ServiceUtils.pagedProgramItems("functions", List.of("a", "b"), 1, limit);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+            assertEquals("functions", data.get("kind"));
+            assertEquals(List.of("b"), data.get("items"));
+            assertEquals(1, data.get("count"));
+            assertEquals(1, data.get("offset"));
+            assertEquals(2, data.get("total"));
+            assertFalse("unbounded pages omit limit", data.containsKey("limit"));
+        }
+    }
+
+    @Test
+    public void pagedProgramItemsOffsetPastEndReturnsEmptyPage() {
+        Response r = ServiceUtils.pagedProgramItems("functions", List.of("a", "b"), Integer.MAX_VALUE, Integer.MAX_VALUE);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) ((Response.Ok) r).data();
+        assertEquals("functions", data.get("kind"));
+        assertEquals(List.of(), data.get("items"));
+        assertEquals(0, data.get("count"));
+        assertEquals(Integer.MAX_VALUE, data.get("offset"));
+        assertEquals(Integer.MAX_VALUE, data.get("limit"));
+        assertEquals(2, data.get("total"));
     }
 
     @Test
