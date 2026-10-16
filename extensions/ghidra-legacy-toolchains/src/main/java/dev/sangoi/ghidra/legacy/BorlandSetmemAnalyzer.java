@@ -58,19 +58,8 @@ public class BorlandSetmemAnalyzer extends QualifiedRuntimeHelperAnalyzer {
         if (!disassembly.applyTo(program)) {
             throw new IllegalStateException("Wrapper's internal target does not disassemble natively");
         }
-        var address = target;
-        for (int length : INSTRUCTION_LENGTHS) {
-            var instruction = program.getListing().getInstructionAt(address);
-            if (instruction == null || instruction.getLength() != length) {
-                throw new IllegalStateException("Wrapper's internal target has unqualified instruction boundaries");
-            }
-            address = address.add(length);
-        }
-        for (String name : new String[] { "opsize", "addrsize" }) {
-            var value = program.getProgramContext().getValue(program.getRegister(name), target, false);
-            if (value == null || value.signum() != 0) {
-                throw new IllegalStateException("Wrapper's internal target is not in qualified 16-bit context");
-            }
+        if (!hasQualifiedInstructions(program, target, INSTRUCTION_LENGTHS)) {
+            throw new IllegalStateException("Wrapper's internal target has unqualified instruction boundaries or 16-bit context");
         }
     }
 }

@@ -84,7 +84,7 @@ public abstract class QualifiedRuntimeHelperAnalyzer extends AbstractAnalyzer {
                         AddressSet body = new AddressSet(match, end);
                         DisassembleCommand disassembly = new DisassembleCommand(match, body, true);
                         disassembly.enableCodeAnalysis(false);
-                        if (!disassembly.applyTo(program, monitor) || !hasQualifiedInstructions(program, match)) {
+                        if (!disassembly.applyTo(program, monitor) || !hasQualifiedInstructions(program, match, instructionLengths)) {
                             log.appendMsg(analyzerName, "Complete bytes at " + match + " do not have the qualified native instruction boundaries");
                             continue;
                         }
@@ -113,7 +113,7 @@ public abstract class QualifiedRuntimeHelperAnalyzer extends AbstractAnalyzer {
         return true;
     }
 
-    private boolean hasQualifiedInstructions(Program program, Address entry) {
+    protected static boolean hasQualifiedInstructions(Program program, Address entry, int[] instructionLengths) {
         Address address = entry;
         for (int length : instructionLengths) {
             Instruction instruction = program.getListing().getInstructionAt(address);

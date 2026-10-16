@@ -1,8 +1,10 @@
 // Native original-input check; argument: an existing task-private output directory.
 //@category LegacyToolchains
 
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
@@ -13,6 +15,7 @@ import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
 import ghidra.app.util.importer.MessageLog;
+import ghidra.program.database.ProgramDB;
 import ghidra.program.database.SpecExtension;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -35,6 +38,7 @@ public class ValidateMemoryFill extends GhidraScript {
         require(wrapper != null && BorlandMemsetAnalyzer.CONVENTION.equals(wrapper.getCallingConventionName()), "Installed automatic memset analyzer must recognize original input");
         requireBytes(0x19f2, "45558bec571e078b7e068b4e088a460a8ae0fcf7c701007404e309aa49d1e9f3ab7301aa5f5d4dcb");
         requireBytes(0x1a1a, "45558bec568b76068a460850ff760a560ee8c4ff83c4068bc65e5d4dcb");
+        validateTargetContext(output, internalEntry);
         requireBody(internal, 40, 24);
         requireBody(wrapper, 29, 17);
         requireContract(internal, new String[] { "destination_offset", "byte_count", "fill_word_low_byte" });
@@ -119,7 +123,85 @@ public class ValidateMemoryFill extends GhidraScript {
         }
         require(SpecExtension.getVersionCounter(currentProgram) == version, "User-owned functions must not reinstall conventions");
         Files.writeString(output.resolve("ownership-rerun.txt"), log.toString());
-        println("MEMORY FILL VALIDATION PASS: automatic original 40/24 and 29/17 matches; WORD offsets/results; purge0/shift4/pop4; qualified clobbers; actual PUSHCS/nearCALL/RETF frames and six-byte cleanups; selector-qualified WORD call arguments at near SP-10/-8/-6; native C/p-code; repeat and user ownership retained.");
+        println("MEMORY FILL VALIDATION PASS: automatic original 40/24 and 29/17 matches; internal target operand/address context rejection and normal family control; WORD offsets/results; purge0/shift4/pop4; qualified clobbers; actual PUSHCS/nearCALL/RETF frames and six-byte cleanups; selector-qualified WORD call arguments at near SP-10/-8/-6; native C/p-code; repeat and user ownership retained.");
+    }
+
+    private void validateTargetContext(Path output, Address originalEntry) throws Exception {
+        byte[] bytes = new byte[69];
+        require(currentProgram.getMemory().getBytes(originalEntry, bytes) == bytes.length, "Expected the complete original fill family for target-context fixtures");
+        int[] lengths = { 1, 1, 2, 1, 1, 1, 3, 3, 3, 2, 1, 4, 2, 2, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 3, 3, 1, 3, 1, 1, 3, 3, 2, 1, 1, 1, 1 };
+        StringBuilder evidence = new StringBuilder("Production helper owner: " + BorlandSetmemAnalyzer.class.getProtectionDomain().getCodeSource().getLocation() + "\n");
+        List<String> incompatibleContracts = new ArrayList<>();
+        for (String scenario : new String[] { "normal", "opsize", "addrsize" }) {
+            ProgramDB fixture = new ProgramDB("Fill target context " + scenario, currentProgram.getLanguage(), currentProgram.getLanguage().getDefaultCompilerSpec(), this);
+            int transaction = fixture.startTransaction("Predecoded fill target context witness");
+            try {
+                Address entry = fixture.getAddressFactory().getDefaultAddressSpace().getAddress(0x10000000);
+                Address end = entry.add(bytes.length - 1);
+                Address wrapperEntry = entry.add(40);
+                Address target = entry.add(31);
+                var block = fixture.getMemory().createInitializedBlock("fill-family", entry, bytes.length, (byte) 0, monitor, false);
+                block.setExecute(true);
+                fixture.getMemory().setBytes(entry, bytes);
+                Address address = entry;
+                // Decode each bounded instruction separately: entry disassembly can otherwise normalize flowing context.
+                for (int length : lengths) {
+                    Address instructionEnd = address.add(length - 1);
+                    for (String name : new String[] { "opsize", "addrsize" }) {
+                        BigInteger value = address.equals(target) && scenario.equals(name) ? BigInteger.ONE : BigInteger.ZERO;
+                        fixture.getProgramContext().setValue(fixture.getRegister(name), address, instructionEnd, value);
+                    }
+                    DisassembleCommand command = new DisassembleCommand(address, new AddressSet(address, instructionEnd), false);
+                    command.enableCodeAnalysis(false);
+                    require(command.applyTo(fixture, monitor), "Native target-context fixture disassembly failed: " + scenario + " at " + address);
+                    Instruction instruction = fixture.getListing().getInstructionAt(address);
+                    require(instruction != null && instruction.getLength() == length, "Target-context witness must retain the qualified instruction lengths: " + scenario);
+                    address = address.add(length);
+                }
+                require(address.equals(end.next()), "Target-context fixture must decode the complete 69-byte family");
+                for (String name : new String[] { "opsize", "addrsize" }) {
+                    require(BigInteger.ZERO.equals(fixture.getProgramContext().getValue(fixture.getRegister(name), entry, false)) && BigInteger.ZERO.equals(fixture.getProgramContext().getValue(fixture.getRegister(name), wrapperEntry, false)), "Both helper entries must remain in 16-bit context: " + scenario);
+                    BigInteger expected = scenario.equals(name) ? BigInteger.ONE : BigInteger.ZERO;
+                    require(expected.equals(fixture.getProgramContext().getValue(fixture.getRegister(name), target, false)), "Internal target-context witness was not established: " + scenario);
+                }
+                Instruction instruction = fixture.getListing().getInstructionAt(target);
+                String decoded = instruction.toString();
+                PcodeOp[] operations = instruction.getPcode();
+                int storeSize = scenario.equals("opsize") ? 4 : 2;
+                require(Arrays.stream(operations).anyMatch(operation -> operation.getOpcode() == PcodeOp.STORE && operation.getInput(2).getSize() == storeSize), "Native fill STORE width must reflect internal operand context: " + scenario);
+                for (String name : scenario.equals("addrsize") ? new String[] { "EDI", "ECX" } : new String[] { "DI", "CX" }) {
+                    var register = fixture.getRegister(name);
+                    require(Arrays.stream(operations).anyMatch(operation -> operation.getOutput() != null && operation.getOutput().getAddress().equals(register.getAddress()) && operation.getOutput().getSize() == register.getMinimumByteSize()), "Native fill index/count must reflect internal address context: " + scenario + " " + name);
+                }
+                evidence.append(scenario).append(" entries=0/0 internal=").append(scenario.equals("opsize") ? 1 : 0).append('/').append(scenario.equals("addrsize") ? 1 : 0).append(' ').append(decoded).append(" length=").append(instruction.getLength()).append('\n');
+                for (PcodeOp operation : operations) {
+                    evidence.append("  PCODE ").append(operation).append('\n');
+                }
+                MessageLog log = new MessageLog();
+                int version = SpecExtension.getVersionCounter(fixture);
+                require(new BorlandSetmemAnalyzer().added(fixture, new AddressSet(entry, wrapperEntry.previous()), monitor, log), "Production internal target-context analysis failed: " + log);
+                boolean wrapperOk = new BorlandMemsetAnalyzer().added(fixture, new AddressSet(wrapperEntry, end), monitor, log);
+                Function internal = fixture.getFunctionManager().getFunctionAt(entry);
+                Function wrapper = fixture.getFunctionManager().getFunctionAt(wrapperEntry);
+                evidence.append("internalContract=").append(internal == null ? "none" : internal.getCallingConventionName()).append(" wrapperResult=").append(wrapperOk).append(" wrapperFunction=").append(wrapper == null ? "none" : wrapper.getName()).append(" wrapperContract=").append(wrapper == null ? "none" : wrapper.getCallingConventionName()).append(" prototypeVersion=").append(version).append("->").append(SpecExtension.getVersionCounter(fixture)).append('\n').append(log).append('\n');
+                if (scenario.equals("normal")) {
+                    require(wrapperOk && internal != null && BorlandSetmemAnalyzer.CONVENTION.equals(internal.getCallingConventionName()) && wrapper != null && BorlandMemsetAnalyzer.CONVENTION.equals(wrapper.getCallingConventionName()), "Normal complete native fill family must receive both contracts");
+                }
+                else {
+                    require(internal == null, "Shared qualification must reject the incompatible internal helper: " + scenario);
+                    if (wrapper != null && BorlandMemsetAnalyzer.CONVENTION.equals(wrapper.getCallingConventionName())) {
+                        incompatibleContracts.add(scenario);
+                    }
+                }
+                require(fixture.getListing().getInstructionAt(target).toString().equals(decoded) && Arrays.toString(fixture.getListing().getInstructionAt(target).getPcode()).equals(Arrays.toString(operations)), "Analyzers must preserve the decoded target-context witness: " + scenario);
+            }
+            finally {
+                fixture.endTransaction(transaction, false);
+                fixture.release(this);
+            }
+        }
+        Files.writeString(output.resolve("target-context.txt"), evidence);
+        require(incompatibleContracts.isEmpty(), "Incompatible internal target context must not receive the operational wrapper contract: " + incompatibleContracts);
     }
 
     private void requireActualStackArgument(Varnode argument, long expectedOffset, StringBuilder evidence) {
