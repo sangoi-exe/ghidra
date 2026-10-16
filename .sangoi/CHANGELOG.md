@@ -2,6 +2,8 @@
 
 ## In progress — safe profiles and new RE candidates
 
+- Local Code Gate returned `DO_NOT_PROCEED` for `9eab2ea222a559cec2541a2061405403fa210ad0`, with complete required review and three statically verified TLINK51 custom-follower defects. Passing original/native/MCP scenarios remain bounded evidence, not complete safety closure. Remediation awaits the current user; no correction or later Gate is authorized yet.
+
 - Correct overflow in both MCP pagination helpers. Twelve focused tests pass after the two demonstrated failures, and actual stock-bridge stdio requests to both pagination paths return the exact 1,029-item slice from 1,030 items with offset 1 and limit 2147483647.
 
 - Qualify operand/address context at every recognized helper instruction and at the memset wrapper's actual internal target. Native incompatible-context cases are rejected without applying their operational contracts; existing helper/caller validators pass.
@@ -10,7 +12,7 @@
 
 - Separate original identity from current function qualification. Verify bytes, native relocation expectations and effective context before applying original cleanup. Preserve manual VPRINTER flow and TLINK dependent contracts. Actual RET0/context/relocated-field counterexamples and restored-original controls pass.
 
-- Implement the whole 128-byte move family and selected BCC 2.0/3.1/4.5 facts in `218a8564f617185cb9e0820d74b8fff7b361f32d`. Cumulative native validation passes all eight originals and the helper suite. Actual MCP queries consume 21 selected new functions, seven C views and the two descriptive record types. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) owns the single delivery; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) records attempts and limits. The current user selected local Code Gate review; its disposition remains pending. No global deployment or push occurred.
+- Implement the whole 128-byte move family and selected BCC 2.0/3.1/4.5 facts in `218a8564f617185cb9e0820d74b8fff7b361f32d`. Cumulative native validation passes all eight originals and the helper suite. Actual MCP queries consume 21 selected new functions, seven C views and the two descriptive record types. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) owns the single delivery; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) records attempts, review findings and limits. No global deployment or push occurred.
 
 ## Unreleased — integrated toolchain analysis and segmented C
 
