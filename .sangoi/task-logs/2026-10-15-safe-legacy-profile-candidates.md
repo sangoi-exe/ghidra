@@ -6,7 +6,7 @@ Canonical intent: [safe legacy profiles and qualified RE candidates](../planning
 
 The user activated the approved Implementation with `sim, favor`, turn `01a1422f-1bb8-70e2-87a8-f16b2ba116eb`, at `2026-10-15T21:49:06.346-03:00` (`America/Sao_Paulo`). Product baseline is `3bb77e8dabb13abeb6f40f6a767e48b69d8725cd`; planning checkpoint is `150730fed19208d21c8043e3808961b6ee8eccc0`. New product outputs are under `/home/lucas/.cache/codex/safe-legacy-candidates-fuo2mE/`.
 
-All five original corrections, the selected native prerequisite and the four candidate groups are implemented and committed. Product candidate `218a8564f617185cb9e0820d74b8fff7b361f32d` passes the cumulative eight-original native run and actual MCP consumption of all four groups. Both pagination paths also pass actual stdio transport proof. Documentation and final packages record that evidence; the plan is on-hold awaiting the current user's exact Code Gate selection/review. No global deployment, original execution or push occurred.
+All five original corrections, the selected native prerequisite and the four candidate groups are implemented and committed. Product candidate `218a8564f617185cb9e0820d74b8fff7b361f32d` passes the cumulative eight-original native run and actual MCP consumption of all four groups. Both pagination paths also pass actual stdio transport proof. The current user selected the local Code Gate at `2026-10-16T03:15:40.247-03:00`, turn `01a1435a-1213-7e50-8fae-3ef9b540f16d`, source line 9123 (`vai de locsl`). The plan is active for that fixed-object read-only review; no disposition or remediation authorization exists yet. No global deployment, original execution or push occurred.
 
 ## M2: pagination correction
 
