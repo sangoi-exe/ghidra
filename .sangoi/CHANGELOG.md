@@ -2,11 +2,15 @@
 
 ## In progress — safe profiles and new RE candidates
 
-- Correct overflow in both MCP pagination helpers; the two reproduced maximum-limit failures now pass within 12 focused tests. Checkpoint `c85f7d109215112a8d109f50a8595e0de447be84` is not yet integration-reviewed.
+- Correct overflow in both MCP pagination helpers. Twelve focused tests pass after the two demonstrated failures, and actual stock-bridge stdio requests to both pagination paths return the exact 1,029-item slice from 1,030 items with offset 1 and limit 2147483647.
 
-- Qualify operand/address context at every recognized helper instruction. Native F_SCOPY internal-context cases are rejected, the normal control is accepted, and existing helper/caller validators pass. Checkpoint `3e86200e17f3046ae77e2806e0c77366b2080d28` does not close the separate memset-target check, whose bypass is now reproduced and remains pending.
+- Qualify operand/address context at every recognized helper instruction and at the memset wrapper's actual internal target. Native incompatible-context cases are rejected without applying their operational contracts; existing helper/caller validators pass.
 
-- The user-selected early-data/late-function candidate builds and resolves the initial data-ordering conflict, but automatic SimTower still fails on destruction of an existing dispatch array. A direct native SDK probe reproduces that array/structure/reference loss in Ghidra's switch-markup owner. The user selected a narrow native correction and focused regression, retaining the array rather than switching to scalar data. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) records the expanded owner boundary; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves both attempts and their limits. The native fix, new candidates and final Code Gate remain unfinished; no deployment or push occurred.
+- Preserve conflicting defined data across its full native mutation footprint. Apply profile data before inference and final function facts afterward. The narrow native switch-markup correction preserves arrays/structures/references and passes seven tests. All eight original automatic profile validators pass on the corrected private runtime.
+
+- Separate original identity from current function qualification. Verify bytes, native relocation expectations and effective context before applying original cleanup. Preserve manual VPRINTER flow and TLINK dependent contracts. Actual RET0/context/relocated-field counterexamples and restored-original controls pass.
+
+- Implement the whole 128-byte move family and selected BCC 2.0/3.1/4.5 facts in `218a8564f617185cb9e0820d74b8fff7b361f32d`. Cumulative native validation passes all eight originals and the helper suite. Actual MCP queries consume 21 selected new functions, seven C views and the two descriptive record types. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) owns the single delivery; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) records attempts and limits. Code Gate selection/review remains pending. No global deployment or push occurred.
 
 ## Unreleased — integrated toolchain analysis and segmented C
 

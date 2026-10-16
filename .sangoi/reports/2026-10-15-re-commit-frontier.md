@@ -1,6 +1,6 @@
 # Local RE commit frontiers and reusable findings
 
-This report records the previous Johnny Castaway and SimTower commit screenings, the useful evidence recovered from those screenings, and a finite follow-up of local commits. The user requested this record on 2026-10-15 while Ghidra's compiler-stack selector correction continued. This is an evidence report, not another implementation plan or authority to add features. The [preceding Intent Contract](../planning/2026-10-15-legacy-toolchains-integrated-expansion.md) is complete. The user subsequently selected four candidate groups plus five reproduced corrections under the [current Intent Contract](../planning/2026-10-15-safe-legacy-profile-candidates.md); that plan owns the new product Scope and status. This selection does not move the fixed screening frontiers below or claim implementation.
+This report records the previous Johnny Castaway and SimTower commit screenings, the useful evidence recovered from those screenings, and a finite follow-up of local commits. The user requested this record on 2026-10-15 while Ghidra's compiler-stack selector correction continued. This is an evidence report, not another implementation plan or authority to add features. The [preceding Intent Contract](../planning/2026-10-15-legacy-toolchains-integrated-expansion.md) is complete. The user subsequently selected four candidate groups plus five reproduced corrections under the [current Intent Contract](../planning/2026-10-15-safe-legacy-profile-candidates.md); that plan owns product Scope and status. The implementation disposition below does not move the fixed screening frontiers.
 
 The commit sweep uses fixed local Git objects, with bounded historical rollout and retained-proof evidence where stated. This sweep did not fetch, use GitHub, execute original programs or modify either RE repository. Human-facing times below use `America/Sao_Paulo` with offset `-03:00`.
 
@@ -129,6 +129,12 @@ The vendor archive reader rejected an A3 comment; actual TLIB extraction omitted
 | `c7cedb3801f1e334c105c117deb05badcf8f30ac` | RF25 corrects an earlier instruction count: six wrapped byte-continuation rows were not instructions;155 actual instructions, not161 displayed rows. FatalAppExit wrapper still has its ordinary restore/RETF suffix if the opaque import returns. | Retain accounting and return-path qualifications. Neither an import name nor platform intent proves unconditional noreturn. |
 
 Canonical committed owners are `.sangoi/research/windows-toolchain-fingerprints.md`, `windows-ne67-prefix-layout.md` and `borland-bcc45-register-allocation.md` (RF26/RF30/RF31), with direct conditional-emission corrections. The remaining review/ledger, palette/font/graphics and regional-matching commits mainly advance SimTower reconstruction rather than establish reusable extension features.
+
+## Subsequent implementation disposition (2026-10-16)
+
+Ghidra product checkpoint `218a8564f617185cb9e0820d74b8fff7b361f32d` implements the four selected groups: the complete move family, BCC2.0 selector/operand and conditional XOR facts, BCC3.1 preparation/lowering facts, and BCC4.5 pending-selector/cache/literal/IR facts. The existing profile and helper owners remain canonical; original-byte, native-binding, partial-semantics and historical-attribution limits above still apply. The move family remains distinct from the earlier forward-only copier.
+
+The [execution record](../task-logs/2026-10-15-safe-legacy-profile-candidates.md) links source readiness, correction attempts and cumulative proof. All eight native original-profile validators and the helper suite pass. Actual MCP consumption covers 21 selected new function records, seven C views and two descriptive record types. The exact Code Gate is still unselected and no reviewed-completion claim is made here. Later RE commits, source hypotheses, RF41 and the nonselected regression corpus were not silently absorbed.
 
 ## Recommendations at the screening checkpoint
 
