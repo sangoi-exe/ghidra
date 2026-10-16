@@ -23,6 +23,7 @@ import ghidra.program.model.data.Structure;
 import ghidra.program.model.data.UnsignedIntegerDataType;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.model.reloc.Relocation;
 import ghidra.program.model.symbol.RefType;
 import ghidra.program.model.symbol.SourceType;
@@ -136,20 +137,29 @@ public class ValidateBcc31Profile extends GhidraScript {
         completeFunction(0x9400, 0x950b, 4, 88);
         require(comment(0x480b1).contains("not a complete function") && comment(0x480b1).contains("NOW-current"), "Transformer rewrite must retain partial extent and fresh-pointer mutation order");
 
+        recordPreparationAndLowering();
+
         int typeCount = currentProgram.getDataTypeManager().getDataTypeCount(true);
         int symbols = currentProgram.getSymbolTable().getNumSymbols();
         String before = comment(0x55deb);
         rerun(profile, args[2].equals("automatic"), log);
         require(typeCount == currentProgram.getDataTypeManager().getDataTypeCount(true) && symbols == currentProgram.getSymbolTable().getNumSymbols() && before.equals(comment(0x55deb)), "Repeated profile must not duplicate native types, labels or comments");
+        recordPreparationAndLowering();
         Function guarded = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x8e49b));
         guarded.setReturnType(UnsignedIntegerDataType.dataType, SourceType.USER_DEFINED);
         guarded.setName("user_owned_bcc31_mapping", SourceType.USER_DEFINED);
         String signature = guarded.getPrototypeString(true, true);
         AddressSet body = new AddressSet(guarded.getBody());
+        Function prepared = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x74826));
+        prepared.setReturnType(UnsignedIntegerDataType.dataType, SourceType.USER_DEFINED);
+        prepared.setName("user_owned_bcc31_preparation", SourceType.USER_DEFINED);
+        String preparedSignature = prepared.getPrototypeString(true, true);
+        AddressSet preparedBody = new AddressSet(prepared.getBody());
         rerun(profile, args[2].equals("automatic"), log);
         require(signature.equals(guarded.getPrototypeString(true, true)) && body.equals(guarded.getBody()) && guarded.getSignatureSource() == SourceType.USER_DEFINED, "Actual user-owned signature/body must be preserved on repeated application");
+        require(preparedSignature.equals(prepared.getPrototypeString(true, true)) && preparedBody.equals(prepared.getBody()) && prepared.getSignatureSource() == SourceType.USER_DEFINED, "New record-preparation facts must also preserve the actual user-owned signature/body");
         result.append(args[2].equals("automatic") ? "Reapplications used the production analyzer native batch.\n" : "Reapplications were explicitly direct; automatic batch behavior is not proved in this mode.\n");
-        result.append("Native assertions passed: near/FAR separation,52 loaded source references,DF qualification,five arrays/counter,unaligned descriptor/full RET,event tables/views/extents,partial transformer,reapplication,user-source priority.\n");
+        result.append("Native assertions passed: near/FAR separation,52 loaded source references,DF qualification,five arrays/counter,unaligned descriptor/full RET,event tables/views/extents,partial transformer,R320/R329/R333 complete bodies/cleanup/native call bindings/separate tables/current-frame return order/qualified bypass,reapplication,user-source priority.\n");
         result.append(log).append('\n');
         Files.writeString(Path.of(args[1]).resolve("bcc31-profile-validation.txt"), result);
         println("BCC31 PROFILE VALIDATION PASS (" + args[2] + "): original bytes, native data/enum/reference/function outcomes and preservation. " + args[1]);
@@ -174,6 +184,120 @@ public class ValidateBcc31Profile extends GhidraScript {
             manager.removeListener(listener);
         }
         require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
+    private void recordPreparationAndLowering() throws Exception {
+        // Expectations are the original R320/R329 byte partitions, entries and relocation records.
+        completeFunction(0x74826, 0x74af2, 4, 261);
+        completeFunction(0x7ebfc, 0x7ef99, 4, 350);
+        completeFunction(0x7eff2, 0x7f607, 6, 553);
+        structure("PreparationRecord20Partial", 20, new int[] { 0, 2, 4, 6, 12, 16 }, new int[] { 2, 2, 2, 1, 4, 4 });
+        wordTable(0x74af2, 0x73800, new int[] { 0x1081, 0x1091, 0x1091, 0x1120, 0x1091 });
+        wordTable(0x7ef99, 0x7d600, new int[] { 0x188d, 0x188d, 0x17ad, 0x17ad, 0x17ad, 0x17ad, 0x162b, 0x162b, 0x196d, 0x196d, 0x196d, 0x1994, 0x17ad, 0x17ad, 0x162b, 0x162b });
+        wordTable(0x7f613, 0x7d600, new int[] { 0x1e12, 0x1e12, 0x1d37, 0x1d37, 0x1d37, 0x1d37, 0x1ac3, 0x1ac3, 0x1e99, 0x1e99, 0x1e99, 0x1fe6, 0x1d37, 0x1d37, 0x1acd, 0x1ebb });
+        originalBytes(0x200d, "00cd3f342610"); // Actual entry021d -> NE52:1026; flags0, not an exported-root claim.
+        originalBytes(0x81b01, "03000a16ff001d02");
+        originalBytes(0x81b51, "0300041aff001d02");
+        farCall(0x7ec0a, 0x021d, 0x74826);
+        farCall(0x7f004, 0x021d, 0x74826);
+        for (int field : new int[] { 0x16bc, 0x1718, 0x174f, 0x176f, 0x17a4, 0x1834, 0x1873, 0x1914, 0x1953, 0x198a }) {
+            farCall(0x7d600 + field, 0x0218, 0x79fc4);
+        }
+        for (int field : new int[] { 0x175f, 0x1863, 0x1943 }) {
+            farCall(0x7d600 + field, 0x025e, 0x7a22e);
+        }
+        farCall(0x7ef90, 0x0273, 0x844cb);
+        for (int site : new int[] { 0x166f, 0x1681, 0x1695, 0x16a7, 0x16d3, 0x1737, 0x1781, 0x1792, 0x17e7, 0x17f9, 0x180d, 0x181f, 0x1853, 0x1885, 0x18c7, 0x18d9, 0x18ed, 0x18ff, 0x1933, 0x1965, 0x1976 }) {
+            nearCall(0x7d600 + site, 0x7d600);
+        }
+        for (int site : new int[] { 0x1727, 0x1843, 0x1923 }) {
+            nearCall(0x7d600 + site, 0x7f772);
+        }
+        for (int site : new int[] { 0x10a7, 0x10dc, 0x112c, 0x114d }) {
+            nearCall(0x73800 + site, 0x74826);
+            nativeBytes(0x73800 + site - 1, "0e"); // Recursive boundary explicitly pushes CS.
+        }
+        for (int site : new int[] { 0x1161, 0x1172, 0x11b6 }) {
+            nearCall(0x73800 + site, 0x74afc); // Opaque12fc, not a recursively assumed far-return body.
+        }
+        for (int terminal : new int[] { 0x1045, 0x1098, 0x10cd, 0x111d, 0x11f2, 0x12b7, 0x12d8, 0x12ef }) {
+            long file = 0x73800 + terminal;
+            nativeBytes(file - 7, "8b56088b4606c9ca0400");
+            frameLoad(file - 7, "DX", 8);
+            frameLoad(file - 4, "AX", 6);
+            require(currentProgram.getListing().getInstructionAt(context.mapped(file)).getFlowType().isTerminal(), "All eight preparation exits must be native RETF4, not inferred returns");
+        }
+        for (int terminal : new int[] { 0x16c2, 0x171e, 0x1755, 0x1775, 0x1786, 0x17aa, 0x183a, 0x1879, 0x188a, 0x191a, 0x1959, 0x196a, 0x1996 }) {
+            nativeBytes(0x7d600 + terminal - 2, "5ec9ca0400");
+            require(currentProgram.getListing().getInstructionAt(context.mapped(0x7d600 + terminal)).getFlowType().isTerminal(), "All thirteen lowering exits must retain actual RETF4 envelopes");
+        }
+        nativeBytes(0x7ec0e, "895608894606"); // Preparation return replaces current high frame word before low.
+        nativeBytes(0x7f008, "89560a894608");
+        nativeBytes(0x748ad, "2689570e2689470c"); // Recursive child high-before-low stores.
+        nativeBytes(0x74953, "2689571226894710");
+        nativeBytes(0x74aa4, "268847068b46f8"); // Record store before fresh frame-local read.
+        nativeBytes(0x74ae4, "268847068b56088b4606"); // Last store before fresh DX then AX reads.
+
+        // Qualified local bypass and actual existing constructor, without promoting the other parent arms.
+        nativeBytes(0x7eff2, "558bec83ec1c5657");
+        nativeBytes(0x7f4bb, "c45ef826833f02752483fe0a740583fe0b751ac45ef8268b470c260b470e750dff76feff76fc0ee817f7e9fe00");
+        nearCall(0x7f4e2, 0x7ebfc);
+        var bypass = currentProgram.getListing().getInstructionAt(context.mapped(0x7f4e5));
+        require(bypass != null && bypass.getFlowType().isJump() && Arrays.asList(bypass.getFlows()).contains(context.mapped(0x7f5e6)), "Successful zero-pair arm must jump to1fe6, bypassing the immediate1fdc name path");
+        nearCall(0x7f0a1, 0x7f881);
+        nearCall(0x7f5e3, 0x804b4);
+        completeFunction(0x804b4, 0x80548, 4, 58); // Reused existing constructor, no duplicate body.
+        farCall(0x745b9, 0x0217, 0x7eff2);
+        for (int field : new int[] { 0x1fa2, 0x1fb2, 0x1fc2, 0x1fd2 }) {
+            farCall(0x7d600 + field, 0x0218, 0x79fc4);
+        }
+        nativeBytes(0x1938d, "70636d704000");
+        nativeBytes(0x193c2, "4e5f00465f00");
+        reference(0x7f5dd, 0x1938d, RefType.DATA);
+        reference(0x804d4, 0x193c2, RefType.DATA);
+        reference(0x804e4, 0x193c5, RefType.DATA);
+        result.append("R320/R329/R333:261/350 complete native instructions, eight fresh DX-then-AX frame-load returns,13 lowering return envelopes,15 actual lowering FAR bindings,24 actual near calls,5/16/16 separate literal WORD tables and qualified bypass/native constructor join passed. Parent553 instructions are byte-complete, semantics remain partial; no source-type/purity/identity or actual R310 traversal asserted.\n");
+    }
+
+    private void wordTable(long file, long segmentFile, int[] words) throws Exception {
+        var data = currentProgram.getListing().getDefinedDataAt(context.mapped(file));
+        require(data != null && data.getDataType() instanceof Array && data.getLength() == 2 * words.length && ((Array) data.getDataType()).getNumElements() == words.length, "Adjacent literal WORD table must remain native array data at FILE" + Long.toHexString(file));
+        for (int i = 0; i < words.length; i++) {
+            require(Short.toUnsignedInt(currentProgram.getMemory().getShort(context.mapped(file + 2L * i))) == words[i], "Actual loaded literal dispatch WORD mismatch");
+            reference(file + 2L * i, segmentFile + words[i], RefType.DATA);
+        }
+    }
+
+    private void farCall(long field, int ordinal, long target) throws Exception {
+        movableReference(field, ordinal, target);
+        var records = currentProgram.getRelocationTable().getRelocations(context.mapped(field));
+        require(records.size() == 1 && records.get(0).getStatus() == Relocation.Status.APPLIED && records.get(0).getValues()[1] == 0, "Actual call requires singleton applied nonadditive relocation");
+        originalBytes(field, "ffff0000");
+        var instruction = currentProgram.getListing().getInstructionAt(context.mapped(field - 1));
+        require(instruction != null && instruction.getLength() == 5 && instruction.getFlowType().isCall() && Arrays.asList(instruction.getFlows()).contains(context.mapped(target)), "Native FAR call must resolve its actual entry binding at FILE" + Long.toHexString(field));
+        var source = context.mapped(field);
+        var loaded = ((SegmentedAddressSpace) source.getAddressSpace()).getAddress(Short.toUnsignedInt(currentProgram.getMemory().getShort(source.add(2))), Short.toUnsignedInt(currentProgram.getMemory().getShort(source)));
+        require(loaded.equals(context.mapped(target)), "Current loaded FAR field must equal independently mapped target, not raw placeholder");
+    }
+
+    private void nearCall(long file, long target) {
+        var instruction = currentProgram.getListing().getInstructionAt(context.mapped(file));
+        require(instruction != null && instruction.getLength() == 3 && instruction.getFlowType().isCall() && Arrays.asList(instruction.getFlows()).contains(context.mapped(target)), "Actual native near-call binding mismatch at FILE" + Long.toHexString(file));
+    }
+
+    private void frameLoad(long file, String register, int displacement) {
+        var instruction = currentProgram.getListing().getInstructionAt(context.mapped(file));
+        require(instruction != null && instruction.getMnemonicString().equalsIgnoreCase("MOV") && instruction.getRegister(0) != null && instruction.getRegister(0).getName().equals(register), "Native current-frame load must write " + register);
+        var input = Arrays.asList(instruction.getOpObjects(1));
+        require(input.contains(currentProgram.getRegister("BP")) && input.stream().anyMatch(o -> o instanceof ghidra.program.model.scalar.Scalar scalar && scalar.getUnsignedValue() == displacement), "Native load must retain actual BP displacement");
+        require(Arrays.stream(instruction.getPcode()).anyMatch(op -> op.getOpcode() == PcodeOp.LOAD && op.getOutput() != null && op.getOutput().getSize() == 2), "Current-frame result requires a real two-byte native memory read");
+    }
+
+    private void nativeBytes(long file, String hex) throws Exception {
+        originalBytes(file, hex);
+        byte[] expected = HexFormat.of().parseHex(hex);
+        byte[] actual = new byte[expected.length];
+        require(currentProgram.getMemory().getBytes(context.mapped(file), actual) == actual.length && Arrays.equals(expected, actual), "Actual loaded bytes differ from the nonrelocated original expectation at FILE" + Long.toHexString(file));
     }
 
     private void callbacks(long start) throws Exception {

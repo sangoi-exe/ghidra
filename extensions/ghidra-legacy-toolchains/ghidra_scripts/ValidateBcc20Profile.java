@@ -14,6 +14,7 @@ import ghidra.app.script.GhidraScript;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
+import ghidra.app.util.PseudoDisassembler;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.data.Array;
@@ -42,7 +43,8 @@ public class ValidateBcc20Profile extends GhidraScript {
         { 0x792ca, 0x795a6, 4, 271 }, { 0x795da, 0x79622, 2, 29 }, { 0x6a642, 0x6a6a5, 2, 34 }, { 0x6a9bc, 0x6aa04, 4, 26 },
         { 0x6ea47, 0x6ee25, 0, 347 }, { 0x6fa2e, 0x6fa53, 6, 12 }, { 0x6f982, 0x6f99f, 4, 11 },
         { 0x6fb03, 0x6fda5, 2, 232 }, { 0x6fda5, 0x6fe45, 2, 59 }, { 0x6fe45, 0x700e1, 4, 220 },
-        { 0x6405a, 0x64137, 6, 84 }, { 0x64137, 0x641a1, 2, 44 }, { 0x63251, 0x63265, 2, 11 }
+        { 0x6405a, 0x64137, 6, 84 }, { 0x64137, 0x641a1, 2, 44 }, { 0x63251, 0x63265, 2, 11 },
+        { 0x70107, 0x70168, 2, 33 }, { 0x70168, 0x7028f, 4, 100 }, { 0x64007, 0x64021, 2, 14 }
     };
 
     @Override
@@ -124,10 +126,11 @@ public class ValidateBcc20Profile extends GhidraScript {
         for (int[] function : FUNCTIONS) {
             function(function);
         }
+        checkOperandAndZeroCandidates();
         instruction(0xbaa0, "98", false);
         instruction(0xbf4e, "ca0800", true);
         instruction(0x140f, "f3a4", true);
-        for (int[] table : new int[][] { { 0x43e65, 0x43e75 }, { 0x79264, 0x79270 }, { 0x795a6, 0x795da }, { 0x7105b, 0x7105d }, { 0x63eab, 0x63ead }, { 0x63f11, 0x63f13 } }) {
+        for (int[] table : new int[][] { { 0x43e65, 0x43e75 }, { 0x79264, 0x79270 }, { 0x795a6, 0x795da }, { 0x7105b, 0x7105d }, { 0x63eab, 0x63ead }, { 0x63f11, 0x63f13 }, { 0x63ef9, 0x63efb } }) {
             var data = currentProgram.getListing().getDefinedDataAt(c.mapped(table[0]));
             require(data != null && data.getLength() == table[1] - table[0], "Selected raw table must be defined data");
             require(!currentProgram.getListing().getInstructions(c.range(table[0], table[1]), true).hasNext(), "Table must not be fabricated instructions");
@@ -142,10 +145,14 @@ public class ValidateBcc20Profile extends GhidraScript {
         int typeCount = currentProgram.getDataTypeManager().getDataTypeCount(true);
         int symbolCount = currentProgram.getSymbolTable().getNumSymbols();
         int referenceCount = currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x543a6));
+        int selectorReferenceCount = currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x64007));
+        int sharedReferenceCount = currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x63cb2));
+        String sharedBefore = currentProgram.getListing().getComment(CommentType.PLATE, c.mapped(0x63cb2));
         String before = currentProgram.getListing().getComment(CommentType.PLATE, c.mapped(0x63596));
         reapply(profile, log, automatic);
         require(blockCount == currentProgram.getMemory().getBlocks().length && typeCount == currentProgram.getDataTypeManager().getDataTypeCount(true) && symbolCount == currentProgram.getSymbolTable().getNumSymbols(), "Actual repeated application duplicated blocks/types/labels");
         require(referenceCount == currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x543a6)) && before.equals(currentProgram.getListing().getComment(CommentType.PLATE, c.mapped(0x63596))), "Actual repeated application duplicated selected references/comments");
+        require(selectorReferenceCount == currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x64007)) && sharedReferenceCount == currentProgram.getReferenceManager().getReferenceCountTo(c.mapped(0x63cb2)) && sharedBefore.equals(currentProgram.getListing().getComment(CommentType.PLATE, c.mapped(0x63cb2))), "Repeated application changed candidate references/comments");
         var guarded = currentProgram.getFunctionManager().getFunctionAt(c.mapped(0x543a6));
         guarded.setName("user_owned_bcc20_append", SourceType.USER_DEFINED);
         guarded.setReturnType(UnsignedIntegerDataType.dataType, SourceType.USER_DEFINED);
@@ -161,6 +168,91 @@ public class ValidateBcc20Profile extends GhidraScript {
         result.append("No original execution, overlay runtime relocation/selector claim, simultaneous residency or generic FBOV support.\n").append(log);
         Files.writeString(Path.of(args[1]).resolve("bcc20-profile-validation.txt"), result);
         println("BCC20 PROFILE VALIDATION PASS (" + args[2] + "; automatic activation tested=" + automatic + "): original equality, native resident relocation preservation, recorded overlay bytes/joins, selected complete functions/data, repeated application and user-source preservation.");
+    }
+
+    private void checkOperandAndZeroCandidates() throws Exception {
+        for (int[] call : new int[][] {
+            { 0x70063, 0x70168 }, { 0x7008d, 0x70107 }, { 0x7017b, 0x70107 },
+            { 0x70279, 0x70168 }, { 0x70285, 0x70168 }
+        }) {
+            var instruction = currentProgram.getListing().getInstructionAt(c.mapped(call[0]));
+            require(instruction != null && instruction.getLength() == 3 && instruction.getFlowType().isCall() && Arrays.asList(instruction.getFlows()).contains(c.mapped(call[1])), "Missing actual operand/selector native near CALL at FILE" + Integer.toHexString(call[0]));
+            require(Byte.toUnsignedInt(original[call[0]]) == 0xe8 && call[0] + 3 + (short) word(call[0] + 1) == call[1], "Original signed near-call operand disagrees");
+        }
+        // Exact native instructions protect partial AL/AH effects, frame reloads and the fresh second-child order, not a guessed source expression.
+        instruction(0x70271, "57", false);
+        instruction(0x70272, "8e069886", false);
+        instruction(0x70276, "26ff34", false);
+        instruction(0x7027c, "57", false);
+        instruction(0x7027d, "8e069886", false);
+        instruction(0x70281, "26ff7402", false);
+        instruction(0x70091, "8b5efe", false);
+        instruction(0x70098, "268a4702", false);
+        instruction(0x7009c, "50", false);
+        instruction(0x701e0, "268a04", false);
+        instruction(0x701e3, "b400", false);
+        instruction(0x64014, "8a4402", false);
+        instruction(0x64019, "b0ff", false);
+        instruction(0x6fc89, "833e288b01", false);
+        instruction(0x6fc90, "833e318b04", false);
+        instruction(0x6fc97, "833e368b00", false);
+        instruction(0x6fc9e, "be4f00", false);
+        instruction(0x6fca1, "c706318b0100", false);
+        instruction(0x6fca7, "a02c8b", false);
+        instruction(0x6fcaa, "a2358b", false);
+        for (int file : new int[] { 0x139d0, 0x139e3, 0x13a1c, 0x13465 }) {
+            var row = currentProgram.getListing().getDefinedDataAt(c.mapped(file));
+            require(row != null && row.getLength() == 19 && row.getDataType().getName().equals("InstructionDescriptor19Partial"), "Missing actual mnemonic descriptor");
+            int literal = file == 0x13465 ? 0x13f8d : 0x1405c;
+            require(0xeef0 + word(file) == literal, "Descriptor mnemonic offset differs");
+            reference(file, literal);
+        }
+        bytes(0x13465, "9d50fe1041030002020a0a0a00000031003500");
+        bytes(0x13f8d, "786f7200");
+        bytes(0x1405c, "6d6f7600");
+        require(word(0x63ef9) == 0x0b02 && word(0x63eab) == 0x0b02, "SUB and XOR must share their actual dispatch arm, not descriptors");
+        reference(0x63ef9, 0x63cb2);
+        reference(0x63eab, 0x63cb2);
+        require(currentProgram.getFunctionManager().getFunctionAt(c.mapped(0x63cb2)) == null, "Partial shared SUB/XOR arm must not become a complete profile function");
+        // Decode actual current native memory without creating instructions or claiming complete partial functions.
+        for (int[] part : new int[][] { { 0x63cb2, 0x63cee, 27 }, { 0x641a1, 0x641be, 14 }, { 0x64268, 0x64274, 8 } }) {
+            partialInstructions(part[0], part[1], part[2]);
+        }
+        for (int[] call : new int[][] {
+            { 0x635b1, 0x64007 }, { 0x635c1, 0x64007 }, { 0x63cb5, 0x6405a },
+            { 0x63cd3, 0x631b0 }, { 0x63cde, 0x63251 }, { 0x63ce8, 0x641a1 },
+            { 0x641b3, 0x63251 }, { 0x6426a, 0x631b0 }
+        }) {
+            var decoded = new PseudoDisassembler(currentProgram).disassemble(c.mapped(call[0]));
+            require(decoded != null && decoded.getLength() == 3 && decoded.getFlowType().isCall() && Arrays.asList(decoded.getFlows()).contains(c.mapped(call[1])), "Actual partial-code native near operand differs at FILE" + Integer.toHexString(call[0]));
+            reference(call[0] + 1, call[1]);
+        }
+        bytes(0x63cb8, "0bc07403"); // Test returned shortening AX, not an assumed entry state.
+        bytes(0x63cbf, "8b440f8946fc833e288b0175228a46fc0402500e");
+        bytes(0x63cd6, "b8318b50a02c8b50"); // Fresh first selector after the opcode append.
+        bytes(0x641aa, "833c01750f8a440450"); // Fresh second kind/selector, not a cached equal selector.
+        bytes(0x641b6, "02460404c0");
+        require(Byte.toUnsignedInt(original[0x143be]) == 0 && Byte.toUnsignedInt(original[0x143c0]) == 2, "Actual selected signed-byte mapping entries differ");
+        int opcode = (word(0x13465 + 15) + 2) & 0xff;
+        int pair00 = (0xc0 + Byte.toUnsignedInt(original[0x143be]) * 9) & 0xff;
+        int pair02 = (0xc0 + Byte.toUnsignedInt(original[0x143c0]) * 9) & 0xff;
+        require(opcode == 0x33 && pair00 == 0xc0 && pair02 == 0xd2, "Conditional actual-descriptor/map byte requests differ");
+        result.append("R357/R363 and R335: three complete new functions and five actual native near joins checked; numeric selector/AL-AH/fresh frame and second-child boundaries retained.\n");
+        result.append("R335: actual MOV/XOR descriptor/literal and shared SUB/XOR dispatch joins, current zero-arm instructions, native partial-call operands and conditional33c0/33d2 request arithmetic checked. No upstream wide-request producer or completed physical output proved.\n");
+    }
+
+    private void partialInstructions(int start, int end, int expectedCount) throws Exception {
+        PseudoDisassembler decoder = new PseudoDisassembler(currentProgram);
+        int cursor = start;
+        int count = 0;
+        while (cursor < end) {
+            var instruction = decoder.disassemble(c.mapped(cursor));
+            require(instruction != null && cursor + instruction.getLength() <= end && Arrays.equals(instruction.getBytes(), Arrays.copyOfRange(original, cursor, cursor + instruction.getLength())), "Partial native decoding differs at FILE" + Integer.toHexString(cursor));
+            cursor += instruction.getLength();
+            count++;
+        }
+        require(cursor == end && count == expectedCount, "Partial native instruction extent/count differs");
+        result.append("PARTIAL FILE[").append(Integer.toHexString(start)).append(',').append(Integer.toHexString(end)).append(") native decoded instructions=").append(count).append("; not a complete function\n");
     }
 
     private void analyzeProfileChanges(String profileId) throws Exception {

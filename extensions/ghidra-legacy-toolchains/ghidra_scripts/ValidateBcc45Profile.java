@@ -110,6 +110,8 @@ public class ValidateBcc45Profile extends GhidraScript {
         checkOriginalBytes(0xad8df, "c70659a60100");
         require(currentProgram.getListing().getInstructionAt(context.mapped(0xad8db)) != null, "Native instruction must own the actual009c->005e operation");
 
+        checkSelectorAndSerializationFacts();
+
         int typeCount = currentProgram.getDataTypeManager().getDataTypeCount(true);
         int symbols = currentProgram.getSymbolTable().getNumSymbols();
         String before = currentProgram.getListing().getComment(CommentType.PLATE, context.mapped(0x895f1));
@@ -134,7 +136,94 @@ public class ValidateBcc45Profile extends GhidraScript {
         result.append("Production user-source preservation passed on actual branch constructor; disposable validation Program intentionally retains this user-owned signature.\n");
         result.append(log).append('\n');
         Files.writeString(output.resolve("bcc45-profile-validation.txt"), result);
-        println("BCC45 PROFILE VALIDATION PASS: exact original bytes, native mapping/relocations, all52 callback references, separate layouts, complete selected extents, state/normalizer, repeated analysis and user-source preservation. " + output);
+        println("BCC45 PROFILE VALIDATION PASS: exact original bytes, native mapping/relocations, all52 callback references, separate layouts, complete selected extents, RF26/RF30/RF31 native selector/serialization joins, state/normalizer, repeated analysis and user-source preservation. " + output);
+    }
+
+    private void checkSelectorAndSerializationFacts() throws Exception {
+        checkFunction(0x8be9e, 0x8becb, 2, 21);
+        checkFunction(0xad68a, 0xad6bf, 8, 19);
+        checkFunction(0x937c0, 0x93a29, 2, 191);
+        checkFunction(0x8c770, 0x8c7b7, 10, 27);
+        checkFunction(0x8cf15, 0x8cf81, 2, 41);
+        checkFunction(0x8b69e, 0x8be65, 2, 637);
+        checkFunction(0x8c523, 0x8c64e, 4, 108);
+        checkFunction(0x96d0c, 0x96d2c, 4, 18);
+        checkFunction(0xae5ca, 0xae651, 6, 47);
+        checkFunction(0x5cadd, 0x5cb35, 8, 33);
+        checkFunction(0xa767c, 0xa7756, 2, 83);
+        checkFunction(0xa7756, 0xa783d, 4, 87);
+        checkFunction(0x99afc, 0x99b24, 2, 19);
+        checkStructure("PendingEntry9", 9, new int[] { 0, 1, 2, 3, 5, 7 }, new int[] { 1, 1, 1, 2, 2, 2 });
+        Structure pending = (Structure) currentProgram.getDataTypeManager().getDataType(Bcc45Profile.TYPES, "PendingEntry9");
+        String[] fields = { "kind", "policy", "desired_selector", "request_index", "tracked_index", "linked_index" };
+        int[] offsets = { 0, 1, 2, 3, 5, 7 };
+        for (int i = 0; i < fields.length; i++) {
+            require(fields[i].equals(pending.getComponentAt(offsets[i]).getFieldName()), "Incorrect descriptive pending-entry field at " + offsets[i]);
+        }
+        checkDataWords(0x93a29, 0x93a3b);
+        checkOriginalBytes(0x93a29, "801af91a7d1bd21be81bf919551a651a731a");
+        checkDataWords(0xa783d, 0xa7845);
+        checkOriginalBytes(0xa783d, "eb0beb0b870bf00b");
+        checkReference(0x931a4, 49, 0x109e, 0x8be9e);
+        checkReference(0xa7b76, 56, 0x0f08, 0x99308);
+        checkReference(0x939bf, 65, 0x0160, 0xad560);
+        checkReference(0x9c6b1, 65, 0x11ca, 0xae5ca);
+        checkReference(0x9c6b7, 65, 0x0f3a, 0xae33a);
+        for (long[] edge : new long[][] { { 0x931a3, 0x8be9e }, { 0xa7b75, 0x99308 }, { 0x939be, 0xad560 }, { 0x9c6b0, 0xae5ca }, { 0x9c6b6, 0xae33a } }) {
+            var call = currentProgram.getListing().getInstructionAt(context.mapped(edge[0]));
+            require(call != null && call.getFlowType().isCall() && Arrays.asList(call.getFlows()).contains(context.mapped(edge[1])), "Actual FAR CALL must resolve to the qualified native target at FILE " + Long.toHexString(edge[0]));
+        }
+
+        // Real complete query: only AL is assigned, including FF fallback; doubled index is used for reads.
+        checkNativeInstruction(0x8beaa, "03d2", "ADD");
+        checkNativeInstruction(0x8beac, "8e062a9b", "MOV");
+        checkNativeInstruction(0x8beb2, "26f60701", "TEST");
+        checkNativeInstruction(0x8beb8, "b0ff", "MOV");
+        checkNativeInstruction(0x8bebc, "8e063a9b", "MOV");
+        checkNativeInstruction(0x8bec2, "268a07", "MOV");
+        int alWrites = 0;
+        for (var instruction : currentProgram.getListing().getInstructions(context.range(0x8be9e, 0x8becb), true)) {
+            require(!instruction.getFlowType().isCall(), "Complete cache query must not become a builder call path");
+            for (Object written : instruction.getResultObjects()) {
+                if (written instanceof ghidra.program.model.lang.Register register) {
+                    require(!register.getName().equalsIgnoreCase("AH") && !register.getName().equalsIgnoreCase("AX"), "Cache query must not clear/replace the unqualified high return byte");
+                    if (register.getName().equalsIgnoreCase("AL")) {
+                        alWrites++;
+                    }
+                }
+            }
+        }
+        require(alWrites == 2, "Actual native query must have the FF and cached-byte AL result assignments only");
+
+        checkOriginalBytes(0xa7c98, "6a0f");
+        Address branch = context.mapped(0xa7b6a);
+        require(currentProgram.getMemory().getShort(context.mapped(0xa7c98)) == (short) 0x0f6a && currentProgram.getReferenceManager().getReference(context.mapped(0xa7c98), branch, 0) != null, "Tag0039 WORD cell must join the same-CS native0f6a branch");
+        checkNativeInstruction(0xa7b6a, "833e4ca604", "CMP");
+        checkNativeInstruction(0xa7b72, "68144e", "PUSH");
+        checkOriginalBytes(0x17414, "61782c61782c00");
+        var literal = currentProgram.getListing().getDefinedDataAt(context.mapped(0x17414));
+        require(literal != null && literal.getLength() == 7, "Literal AX duplication must be data, not inferred register operands");
+        checkNativeInstruction(0xa7b5d, "6859a6", "PUSH");
+        require(currentProgram.getListing().getInstructionAt(context.mapped(0xa7b5d)).getScalar(0).getUnsignedValue() == 0xa659, "Common tail passes addressA659, not its stored WORD");
+        var widthCall = currentProgram.getListing().getInstructionAt(context.mapped(0xa7b63));
+        require(widthCall != null && Arrays.asList(widthCall.getFlows()).contains(context.mapped(0xa7e8b)), "Common tail must call the existing128b width lookup");
+        checkNativeInstruction(0xa7eb9, "8b5e06", "MOV");
+        checkNativeInstruction(0xa7ebc, "8b1f", "MOV");
+        checkNativeInstruction(0xa7f54, "8b5e06", "MOV");
+        checkNativeInstruction(0xa7f57, "66817f05ff7f0000", "CMP");
+        checkNativeInstruction(0xa8037, "ff7705", "PUSH");
+        checkOriginalBytes(0xa831d, "cd128713421433130a15");
+        checkNativeInstruction(0x9c576, "26833f02", "CMP");
+        checkNativeInstruction(0x9c6a3, "666800003e00", "PUSH");
+        checkNativeInstruction(0x9c6aa, "6a0c", "PUSH");
+        require(currentProgram.getSymbolTable().getSymbol("bcc45_direct_imul_admission_fragment", context.mapped(0x9c51a), currentProgram.getGlobalNamespace()) != null && currentProgram.getSymbolTable().getSymbol("bcc45_direct_imul_construction_fragment", context.mapped(0x9c66e), currentProgram.getGlobalNamespace()) != null, "Partial frontend selections must remain named fragments, not fabricated complete bodies");
+        result.append("RF26/RF30/RF31: complete native bodies/cleanup, descriptive pending fields, adjacent dispatch data, actual FAR CALL flows, AL-only cache query,0039 literal/address/width joins and direct003e frontend/backend tag distinction passed. Actual RF24 state, aliases, allocation identity and physical output remain unproved.\n");
+    }
+
+    private void checkNativeInstruction(long offset, String hex, String mnemonic) throws Exception {
+        checkOriginalBytes(offset, hex);
+        var instruction = currentProgram.getListing().getInstructionAt(context.mapped(offset));
+        require(instruction != null && instruction.getMnemonicString().equalsIgnoreCase(mnemonic) && Arrays.equals(instruction.getBytes(), java.util.HexFormat.of().parseHex(hex)), "Native instruction does not implement the selected original operation at FILE " + Long.toHexString(offset));
     }
 
     private void analyzeProfileChanges(String profileId) throws Exception {

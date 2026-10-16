@@ -60,6 +60,8 @@ public final class Bcc31Profile extends ToolchainProfile {
         appendAndNodes(c);
         instructionDescriptors(c);
         events(c, far);
+        recordPreparation(c, far);
+        numericLowering(c);
     }
 
     @Override
@@ -90,6 +92,9 @@ public final class Bcc31Profile extends ToolchainProfile {
         c.function(0x85200, 0x8543d, "bcc31_consume_branch_events", 4, "R275 reused NE61:[0000,023d), RETF4. Selected kind0/4/5 reads code+8,target+e through current8891 after preludes/callbacks; downstream current branch wrappers separate from historical event creation/traversal.");
         c.function(0x3ee24, 0x3ee31, "bcc31_identity_far_pair", 4, "R289 NE28:[4824,4831), complete13-byte/6-instruction RETF4 leaf: loads frame BP+8->DX and BP+6->AX, no dereference/helper. Returns supplied pair only with valid frame/return protocol; does not establish current7f64 selects it.");
         c.function(0x9400, 0x950b, "bcc31_argument_selection_helper", 4, "R291 NE3:[0000,010b), complete267-byte/88-instruction RETF4 body. Argument FAR+8/+a reaches sampled BYTE+d and followed FAR+4 WORD0 comparison0012; alternative FAR+10/+12 or finite current pair tables remain raw fields, not Event16. Physical argument chronology and current indirect8b42/8b3e/8b3a are conditional. Both local exits forward actual final opaque call DX:AX, not an explicit reload of input or saved pair; numerical identity/replacement and transitive effects unproved.");
+        c.function(0x74826, 0x74af2, "bcc31_prepare_record_children", 4, "R329/R333 NE52:[1026,12f2), complete716-byte/261-instruction RETF4 body; adjacent five-WORD dispatch table excluded. Recursively replaces child pairs high-before-low through freshly loaded parent views and conditionally writes BYTE6 using finite signed/partial-register arithmetic. All eight exits freshly load current frame BP+8 into DX, THEN BP+6 into AX; not an unconditional input identity, different-pointer result or pure function. Opaque12fc, aliases, recursion termination, descendant cleanup and actual R310 traversal/source type remain unproved.");
+        c.function(0x7ebfc, 0x7ef99, "bcc31_lower_numeric_record", 4, "R320 NE58:[15fc,1999), complete925-byte/350-instruction RETF4 body; adjacent16-WORD table excluded. Actual021d result overwrites current frame high then low. Numeric WORD2 dispatch, current1a67 and signed BYTE6 select ordered requests and current saved child/result words. Fifteen real FAR fields and24 near calls do not establish P/E/K/2172 prototypes or operation names. Thirteen POP SI/LEAVE/RETF4 envelopes restore saved SI only with intact frame/stack and applicable descendant cleanup; return DX:AX/effects are route-dependent, not a universal ABI or source-type theorem.");
+        c.function(0x7eff2, 0x7f607, "bcc31_numeric_lowering_parent", 6, "R320 NE58:[19f2,2007), byte-complete1557-byte/553-instruction RETF6 body with PARTIAL semantic coverage only: [19f2,1ac3),[1ebb,1ee8),[1f92,2007). Actual021d result overwrites BP+a/BP+8; current post-2281 SI and fresh saved-second fields gate the numeric0010 zero-pair arm. Qualified success calls15fc then jumps1fe6, bypassing immediate pcmp@ construction; no actual R310 path or source type proved. Remaining arms, opaque calls and transitive effects unreviewed. Existing2eb4 constructor is reused, not a duplicate function or stronger ABI.");
         log.appendMsg(ID, "Qualified option/control suppliers, 52 static FAR-table references, separate WORD arrays, instruction descriptors and event views applied. Current callbacks/state, allocation correspondence and historical invocation remain conditional; no universal ABI or whole-tool recovery.");
     }
 
@@ -304,5 +309,60 @@ public final class Bcc31Profile extends ToolchainProfile {
         c.data(DS_FILE + 0x7f64, new ArrayDataType(far, 2, 4));
         c.label(DS_FILE + 0x7f64, "bcc31_mutable_argument_callback_pair");
         c.comment(DS_FILE + 0x7f64, "R289 four-WORD conditional installation atNE38:018e; requires DF0 at REP MOVSW, valid current segments/stack and nondefeating aliases/effects. Current indirect calls through7f64/7f68 are not unconditional static calls or historical invocation proof.");
+    }
+
+    private void recordPreparation(Context c, DataType far) throws Exception {
+        StructureDataType record = partial("PreparationRecord20Partial", 20, "R329/R333 descriptive addressed-record view only, not Event16, a source-language type or permission to type unproved dynamic addresses.");
+        record.replaceAtOffset(0, WORD, 2, "numericClassification", null);
+        record.replaceAtOffset(2, WORD, 2, "numericLoweringClass", null);
+        record.replaceAtOffset(4, WORD, 2, "testedFlags", "Selected class1 tests0010");
+        record.replaceAtOffset(6, BYTE, 1, "annotationByte", "Signed reads and modulo-byte writes; later reloads remain fresh");
+        record.replaceAtOffset(12, far, 4, "firstChildPair", "Recursive return stores high+e before low+c");
+        record.replaceAtOffset(16, far, 4, "secondChildPair", "Recursive return stores high+12 before low+10");
+        resolve(c, record);
+        dispatchWords(c, 0x74af2, 0x73800, new int[] { 0x1081, 0x1091, 0x1091, 0x1120, 0x1091 });
+        c.label(0x74af2, "bcc31_record_preparation_dispatch5");
+        c.comment(0x74af2, "R329/R333 literal CS12f2 five-WORD data, outside the complete body. DATA references are static same-CS projections, not unconditional executable edges or proof that the table remains unchanged.");
+        c.farReference(0x7ec0a, 0xff, 0x021d, 0x74826);
+        c.farReference(0x7f004, 0xff, 0x021d, 0x74826);
+        c.comment(0x748ad, "R333 current recursive DX is stored to parent+e BEFORE AX to+c through the same freshly loaded parent. Later LES reads the updated pair; calls/aliases may change the argument frame.");
+        c.comment(0x74aa4, "R333 BYTE6 store precedes fresh L/R frame-local reads. Later12db reloads the parent before reading/negating BYTE6;12e4 store precedes fresh BP+8 then BP+6 return loads. Do not cache across these alias-sensitive stores.");
+    }
+
+    private void numericLowering(Context c) throws Exception {
+        dispatchWords(c, 0x7ef99, 0x7d600, new int[] { 0x188d, 0x188d, 0x17ad, 0x17ad, 0x17ad, 0x17ad, 0x162b, 0x162b, 0x196d, 0x196d, 0x196d, 0x1994, 0x17ad, 0x17ad, 0x162b, 0x162b });
+        c.label(0x7ef99, "bcc31_numeric_lowering_dispatch16");
+        c.comment(0x7ef99, "R320 separate literal CS1999 WORD table for u16(WORD2-1)<=000f. Numeric classifications are not source types; same-CS DATA projections do not establish historical traversal or descendant semantics.");
+        dispatchWords(c, 0x7f613, 0x7d600, new int[] { 0x1e12, 0x1e12, 0x1d37, 0x1d37, 0x1d37, 0x1d37, 0x1ac3, 0x1ac3, 0x1e99, 0x1e99, 0x1e99, 0x1fe6, 0x1d37, 0x1d37, 0x1acd, 0x1ebb });
+        c.label(0x7f613, "bcc31_parent_numeric_dispatch16");
+        c.comment(0x7f613, "R320 literal parent CS2013 table; cell2031=1ebb for numeric WORD2=0010. Other targets are literal projections only, not full semantic coverage of the parent arms.");
+        c.data(0x1938d, new ArrayDataType(BYTE, 6, 1));
+        c.data(0x193c2, new ArrayDataType(BYTE, 3, 1));
+        c.data(0x193c5, new ArrayDataType(BYTE, 3, 1));
+        c.label(0x1938d, "bcc31_pcmp_suffix");
+        c.label(0x193c2, "bcc31_near_helper_prefix");
+        c.label(0x193c5, "bcc31_far_helper_prefix");
+        nearDataReference(c, 0x7f5dd, 0x1938d);
+        nearDataReference(c, 0x804d4, 0x193c2);
+        nearDataReference(c, 0x804e4, 0x193c5);
+        for (int field : new int[] { 0x16bc, 0x1718, 0x174f, 0x176f, 0x17a4, 0x1834, 0x1873, 0x1914, 0x1953, 0x198a, 0x1fa2, 0x1fb2, 0x1fc2, 0x1fd2 }) {
+            c.farReference(0x7d600 + field, 0xff, 0x0218, 0x79fc4);
+        }
+        for (int field : new int[] { 0x175f, 0x1863, 0x1943 }) {
+            c.farReference(0x7d600 + field, 0xff, 0x025e, 0x7a22e);
+        }
+        c.farReference(0x7ef90, 0xff, 0x0273, 0x844cb);
+        c.farReference(0x745b9, 0xff, 0x0217, 0x7eff2);
+        c.comment(0x745b1, "R320 NE52:[0db1,0dbd) partial caller window only: pushes current BP+8,BP+6,DI before actual FAR call toNE58:19f2. Not a complete caller body or universal argument declaration.");
+        c.comment(0x7f4bb, "R320 selected zero-pair arm: saved-second WORD0=2, CURRENT post-2281 SI=000a/000b and fresh second-record WORD+c OR WORD+e=0. Push saved-first high then low, call15fc at1ee2, jump1fe6. Qualified bypass of immediate pcmp@ constructor, not actual R310 traversal or source type; failed predicates enter unreviewed request arms.");
+        c.comment(0x7f592, "R320 fresh1a95 zero selects immediate pcmp@ path1fdc; nonzero makes four actual0218 requests then jumps1c2b, not1fe6. This observed branch does not generalize to all parent arms or historical optimizer policy.");
+        c.comment(0x7f5dc, "R320 literal lowercase pcmp@ suffix, then0055 and actual PUSH-CS/near call2eb4. Existing qualified constructor selects N_/F_ from current1a66/8ab8; no later case conversion, external spelling, serialization or executed call inferred.");
+    }
+
+    private void dispatchWords(Context c, long table, long segmentFile, int[] targets) throws Exception {
+        c.data(table, new ArrayDataType(WORD, targets.length, 2));
+        for (int i = 0; i < targets.length; i++) {
+            nearDataReference(c, table + 2L * i, segmentFile + targets[i]);
+        }
     }
 }

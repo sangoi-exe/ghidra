@@ -89,6 +89,7 @@ public final class Bcc45Profile extends ToolchainProfile {
         applyRecordDomains(c, far);
         applyPseudoregisters(c, far);
         applyControlState(c);
+        applySelectorAndLiteralData(c);
     }
 
     @Override
@@ -117,7 +118,26 @@ public final class Bcc45Profile extends ToolchainProfile {
         c.function(0x895f1, 0x8968e, "bcc45_capture_function_policy", 26, "RF03 NE48:[0bf1,0c8e), RETF1ah. Post-helper ordered state writes: zero-extend incoming BYTE[BP+10] into WORD9a91, then clear0200; separately clear register-use WORD9a9b at0c68. No9a9b-to9a91 assignment. Callback/current-segment/lifetime joins remain conditional.");
         c.function(0x9430e, 0x94491, "bcc45_windows_frame_builder", 0, "BI04/RF03 NE54:[010e,0291); selected BYTE9a9c masks01/02 request SI/DI saves after real helper/current-state tests. Register-use WORD9a9b gets1<<selector from actual selector lookup;8/9 can set these high-byte bits. No historical function save-state or physical emission inferred.");
         c.function(0xad705, 0xadb49, "bcc45_normalize_instruction_workspace", 2, "ZF01 NE65:[0305,0749). Selected009c CMP arm requires current A64c kind1, A659 kind4 and A65e DWORD0; transforms tag009c to005e OR, source kind1, destination selector copied to source. This arm tests neither1000 nor prior arithmetic flags. Cache invalidation, operand/request identity, current994e callback and physical output remain unproved.");
-        log.appendMsg(ID, "Qualified backend tables, separate record domains, pseudoregisters and control/normalizer facts applied; dynamic state and historical producer identity remain unproved.");
+        c.function(0x8be9e, 0x8becb, "bcc45_cached_selector_query", 2, "RF30 NE49:[109e,10cb); zero index or indexed9b2a bit01 returns ALff, otherwise current9b3a indexed BYTE returns in AL. AH is uncleared; BX/DX/ES are not restored on paths that change them. No scaled-address construction, allocation or emission.");
+        c.function(0xad68a, 0xad6bf, "bcc45_prepare_imul_result_selector", 8, "RF26 NE65:[028a,02bf); prepares parent via0848 atA64c, sign-extends incoming low WORD into kind4 A659 DWORD+5, and separately copies incoming selector BYTE into kind1 A666. Helpers and actual RF24 state remain unjoined.");
+        c.function(0x937c0, 0x93a29, "bcc45_dispatch_pending_entries", 2, "RF26 NE53:[19c0,1c29); guard and request-index equality condition entry processing. Selected kind3 requests a transfer, then reloads current9b3a and stores the cached desired selector; other kinds differ. Complete boundary, selected semantics only; no unconditional drain or schedule/lifetime invariant.");
+        c.function(0x8c770, 0x8c7b7, "bcc45_construct_pending_entry9", 10, "RF26 NE49:[1970,19b7); opaque allocation requests9 bytes under9ac2, then stores kind/policy/desired-selector and request/tracked/linked indices. Request index reads current9750 after the call. No proved heap instance, publication, failure handling or allocator/index correspondence.");
+        c.function(0x8cf15, 0x8cf81, "bcc45_lookup_prior_selector", 2, "RF26 NE49:[2115,2181); backward nine-byte scan, kind6 index substitution, matching non6 desired-selector BYTE or current indexed9b3a fallback. No validated arena extent, entry history or scheduling invariant.");
+        c.function(0x8b69e, 0x8be65, "bcc45_select_record_result", 2, "RF26 NE49:[089e,1065); complete boundary accounting, selected descriptor capture, tag2/4 association/annotation and conditional selector-reuse paths only. Captured state is not a fresh read; direct IMUL003e and actual RF24 allocation are not the tag2/4 association path. Full semantics remain unreviewed.");
+        c.function(0x8c523, 0x8c64e, "bcc45_select_from_masks", 4, "RF26 NE49:[1723,184e); finite current-state special cases, conditional mask filtering and lowest-set-bit selection; zero/exhausted path retries through opaque184e. Not an unconditional preference or guaranteed terminating allocator.");
+        c.function(0x96d0c, 0x96d2c, "bcc45_annotate_selector_type", 4, "RF26 NE55:[090c,092c); sign-extends incoming selector BYTE, adds1 for type WORD1 or9 otherwise; caller consumes AL. Annotation low6 bits index a mask table, not universally a singleton fixed-register demand.");
+        c.function(0xae5ca, 0xae651, "bcc45_construct_backend_constant_record", 6, "RF31 NE65:[11ca,1251); five independent two-byte allocation requests; first returned offset supplies stores, incoming tag and DWORD retained in separate arenas, outward AX is old9a99 before increment. Allocator equality, counter/index identity, aliases and lifetime unproved; backend0c is not frontend tag2.");
+        c.function(0x5cadd, 0x5cb35, "bcc45_construct_typed_frontend_constant", 8, "RF31 NE27:[00dd,0135); frontend tag2 typed constant, distinct from backend record0c. Storage0063 and transitive effects remain opaque; not an RF24 node-instance observation.");
+        c.function(0xa767c, 0xa7756, "bcc45_asm_callback_size", 2, "RF31 NE62:[0a7c,0b56); current record/descriptor size calculation calls only0b56; no explicit record stores. Complete boundary does not close descriptor semantics or establish global nonaliasing.");
+        c.function(0xa7756, 0xa783d, "bcc45_asm_record_size", 4, "RF31 NE62:[0b56,0c3d); reads current record/descriptor, no calls or explicit non-stack stores. Adjacent four-WORD switch data excluded; no global nonaliasing or whole formatter semantics inferred.");
+        c.function(0x99afc, 0x99b24, "bcc45_asm_signed_word_wrapper", 2, "RF31 NE56:[16fc,1724); signed WORD negative path submits '-' then reloads and negates frame WORD modulo65536 before forwarding. Character/numeric sinks remain opaque, not physical-output proof.");
+        c.comment(0xa7b6a, "RF30/RF31 tag0039 branch tests current A64c.kind4 and conditionally submits literal ax,ax, before common0f5d. It does not read three allocated register operands or prove0039-to-003e rewriting.");
+        c.comment(0xa7b5d, "RF30/RF31 common tail pushes addressA659, not WORD[A659], then obtains width from128b. Formatter12a9 reads that record's own current kind/fields after prior helper effects; A64c.kind4 does not fix A659's kind/value. Actual RF24 traversal, aliases, lifetime and output remain unobserved.");
+        c.label(0x9c51a, "bcc45_direct_imul_admission_fragment");
+        c.comment(0x9c51a, "RF31 NE58:[0b1a,0b99), partial containing function: current type bits/exclusions, tag0b path and right-child frontend tag2 admission. Not a complete frontend function or source-expression equivalence.");
+        c.label(0x9c66e, "bcc45_direct_imul_construction_fragment");
+        c.comment(0x9c66e, "RF31 NE58:[0c6e,0ccf), partial path: nonzero1974 and signed32 amount in[-65536,65536) admit recursive left index, backend constant0c via65:11ca, then new003e request via65:0f3a. This constructs003e directly, not a proved0039 rewrite; low-WORD later preparation, allocator/index/lifetime and RF24 instance joins remain limits.");
+        log.appendMsg(ID, "Qualified backend tables, separate record domains, pseudoregisters, control/normalizer and RF26/RF30/RF31 selector/serialization facts applied; dynamic state and historical producer identity remain unproved.");
     }
 
     private DataType resolve(Context c, DataType type) {
@@ -161,6 +181,33 @@ public final class Bcc45Profile extends ToolchainProfile {
     private void words(Context c, long start, long end, String name) throws Exception {
         c.data(start, new ArrayDataType(WORD, (int) ((end - start) / 2), 2));
         c.label(start, name);
+    }
+
+    private void applySelectorAndLiteralData(Context c) throws Exception {
+        StructureDataType pending = partial("PendingEntry9", 9, "RF26 descriptive dynamic pending-entry layout; no proved heap address or allocated instance. Current arena, index correspondence, scheduling and lifetime remain conditional.");
+        pending.replaceAtOffset(0, BYTE, 1, "kind", null);
+        pending.replaceAtOffset(1, BYTE, 1, "policy", null);
+        pending.replaceAtOffset(2, BYTE, 1, "desired_selector", "Only the low byte of some pushed WORDs is freshly assigned.");
+        pending.replaceAtOffset(3, WORD, 2, "request_index", "Constructor reads current9750 after opaque allocation.");
+        pending.replaceAtOffset(5, WORD, 2, "tracked_index", null);
+        pending.replaceAtOffset(7, WORD, 2, "linked_index", "Kind-dependent use, not a resolved pointer.");
+        resolve(c, pending);
+        words(c, 0x93a29, 0x93a3b, "bcc45_pending_kind_switch_words9");
+        c.comment(0x93a29, "RF26 nine WORD targets for bounded kinds1..9, outside complete19c0 body; current CS near offsets, not FAR pointers or further instructions.");
+        words(c, 0xa783d, 0xa7845, "bcc45_asm_size_switch_words4");
+        c.data(0x17414, new ArrayDataType(BYTE, 7, 1));
+        c.label(0x17414, "bcc45_literal_ax_ax");
+        c.label(0xa7c98, "bcc45_asm_tag0039_dispatch_cell");
+        if (Short.toUnsignedInt(c.program().getMemory().getShort(c.mapped(0xa7c98))) != 0x0f6a) {
+            throw new IllegalStateException("BCC45 current0039 dispatch cell does not select native0f6a");
+        }
+        c.program().getReferenceManager().addMemoryReference(c.mapped(0xa7c98), c.mapped(0xa7b6a), ghidra.program.model.symbol.RefType.DATA, ghidra.program.model.symbol.SourceType.ANALYSIS, 0);
+        c.comment(0xa7c98, "RF30/RF31 native near WORD0f6a selects literal-AX branch for tag0039. Other IMUL tags use different cells; ASM text alone does not identify003e or allocated operand count.");
+        c.farReference(0x931a4, 49, 0x109e, 0x8be9e);
+        c.farReference(0xa7b76, 56, 0x0f08, 0x99308);
+        c.farReference(0x939bf, 65, 0x0160, 0xad560);
+        c.farReference(0x9c6b1, 65, 0x11ca, 0xae5ca);
+        c.farReference(0x9c6b7, 65, 0x0f3a, 0xae33a);
     }
 
     private void applyRecordDomains(Context c, DataType far) throws Exception {

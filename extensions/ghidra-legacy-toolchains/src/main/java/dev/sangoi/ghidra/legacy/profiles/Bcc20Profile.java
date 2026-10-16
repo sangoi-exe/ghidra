@@ -97,6 +97,9 @@ public final class Bcc20Profile extends ToolchainProfile {
         c.function(0x6405a, 0x64137, "bcc20_shorten_immediate_request", 6, "R1680470:[0eaa,0f87); near RET6; tested descriptor flag WORD+3, selected current SUB amount2 yields conditional83/EC/02 byte requests, not physical encoding proof.");
         c.function(0x64137, 0x641a1, "bcc20_request_immediate_bytes", 2, "R1680470:[0f87,0ff1); near RET2; current kind4/adjustment3 requests low amount BYTE once; descendant effects remain open.");
         c.function(0x63251, 0x63265, "bcc20_map_register_selector", 2, "R1680470:[00a1,00b5); near RET2; signed BYTE index and signed BYTE result; selected0b maps04, not a universal unsigned register enum.");
+        c.function(0x70107, 0x70168, "bcc20_conditionally_fill_selector", 2, "R357/R3630508:[0847,08a8); tagged BP frame, near RET2. Incoming argument is an already-scaled byte offset. Only an ff selector plus current tag08 or tag10/11 with current record bit mask02 can write primary+2; fresh segment/word reads and AL-only loads matter. A return need not change the selector; numeric selectors are not CPU register identities.");
+        c.function(0x70168, 0x7028f, "bcc20_construct_operand_fields", 4, "R357/R3630508:[08a8,09cf); tagged BP frame, near RET4. Destination comes from current frame+6; current frame+4 ID is scaled modulo65536. Calls0847 before fresh selector reads. Selected bytes+3/+4 overwrite; word+5 accumulates modulo65536; selected word+7 replaces. No whole-record initialization or source-add expression inferred. Tag1f recursively processes first child, then freshly reloads second child after return; aliases may change globals, records, destination and saved stack. No valid graph or recursion termination inferred; AL loads retain AH unless explicitly cleared.");
+        c.function(0x64007, 0x64021, "bcc20_select_operand_prefix_byte", 2, "R3350470:[0e57,0e71); tagged BP frame, near RET2. Current operand kind5 returns byte+2 in AL, otherwise AL=ff; AH is not cleared. Saves/restores SI on an intact normal-return stack; no general flags or arbitrary alias preservation contract.");
         log.appendMsg(ID, "Applied exact recorded FBOV analysis blocks, selected complete functions, partial layouts and qualified static references. Original overlay words remain unrelocated; no runtime selector, simultaneous residency, generic FBOV support or historical invocation is asserted.");
     }
 
@@ -350,8 +353,8 @@ public final class Bcc20Profile extends ToolchainProfile {
         descriptor.replaceAtOffset(17, WORD, 2, "encoding_word_11", null);
         DataType row = resolve(c, descriptor);
         EnumDataType tags = new EnumDataType(TYPES, "InstructionRequestTag16", 2);
-        String[] names = { "sub_request", "dec_request", "enter_request", "push_request", "mov_request", "call77_request", "call78_request" };
-        int[] values = { 0x28, 0x5b, 0x92, 0x94, 0x9c, 0x77, 0x78 };
+        String[] names = { "xor_request", "mov98_request", "mov99_request", "sub_request", "dec_request", "enter_request", "push_request", "mov_request", "call77_request", "call78_request" };
+        int[] values = { 0x4f, 0x98, 0x99, 0x28, 0x5b, 0x92, 0x94, 0x9c, 0x77, 0x78 };
         for (int i = 0; i < values.length; i++) {
             long file = DS + 0x3f98 + 19L * values[i];
             tags.add(names[i], values[i]);
@@ -366,7 +369,30 @@ public final class Bcc20Profile extends ToolchainProfile {
         words(c, 0x63f11, 0x63f13, "bcc20_DEC_dispatch_cell");
         reference(c, 0x63eab, 0x63cb2);
         reference(c, 0x63f11, 0x637fb);
-        c.label(0x63cb2, "bcc20_SUB_byte_request_fragment");
+        words(c, 0x63ef9, 0x63efb, "bcc20_XOR_dispatch_cell");
+        require(word(c, 0x63ef9) == 0x0b02 && word(c, 0x63eab) == 0x0b02, "changed shared SUB/XOR dispatch target");
+        reference(c, 0x63ef9, 0x63cb2);
+        for (long literal : new long[] { 0x13f8d, 0x1405c }) {
+            c.data(literal, new ArrayDataType(BYTE, 4, 1));
+        }
+        c.label(0x63cb2, "bcc20_SUB_XOR_byte_request_fragment");
+        c.comment(0x63cb2, "R168/R335 partial shared0470:[0b02,0b3e),60bytes/27instructions; NOT a complete function or exclusive XOR arm. SUB0028 and XOR004f dispatch here with distinct descriptors. Shortening0eaa tests current second kind and returns AX=0 for kind1; fallback tests that returned AX, then snapshots current descriptor+0f. Firstkind1 requests saved descriptor+0f low BYTE+2 through append0000. Only AFTER append returns, fresh first selector8b2c goes through signed-BYTE mapping00a1 and three low-word shifts;0ff1 freshly tests second kind/selector and adds low extra+C0. Under continued004f descriptor/workspace/context, equal00/00 or02/02 selectors request33c0 or33d2; not physical output or an unconditional callback preservation claim.");
+        c.label(0x6fc89, "bcc20_zero_to_self_XOR_fragment");
+        c.comment(0x6fc89, "R335 partial0508:[03c9,03f0) inside complete0243. MOV0098/0099/009c descriptors join literal mov; current firstkind1,secondkind4,amount0 select SI=004f, secondkind=1, then copy freshly read first selector BYTE8b2c to8b35. Equality holds at that copy, not across arbitrary later effects. Pending88b1 work precedes this arm; auxiliary04e5 runs before the then-current87f4 callback. This individual-request rule does not prove the upstream producer of two wide-argument zero requests or any historical invocation.");
+        c.comment(0x7005b, "R357/R363 selected partial0508:[079b,07e0) within complete0585, not a separate function. Near07a3 calls08a8; only AFTER return current tag1b can add2 at destination+5. Current second ID is scaled/stored then freshly reread from frame BP-2 for near07cd->0847. After return the frame is read AGAIN;07d8 loads only AL, leaving AH for the full WORD pushed to opaque09cf at07dd. Do not cache frame/child/global reads or infer zero-extended selector arguments.");
+        c.comment(0x635ad, "R335 partial callback prefix:0401 and conditional0411 near-call complete0e57 with8b28/8b31. For current kind1/kind1 both return AL=ff, skipping optional0e71 prefix; actual004f descriptor+0d=0 skips its other prefix request. No whole callback or backend lifetime proof.");
+        c.label(0x641a1, "bcc20_ModRM_register_prefix_fragment");
+        c.comment(0x641a1, "R168/R335 partial0470:[0ff1,100e) plus tail[10b8,10c4); NOT a complete function. Current kind1 reads operand BYTE+4 only AFTER opcode append, maps signed BYTE via00a1, then adds current frame extra low BYTE and c0 modulo256; shared tail requests AL through append0000. Other operand paths remain unreviewed.");
+        c.label(0x64268, "bcc20_ModRM_byte_request_tail_fragment");
+        // These original near-call displacement fields are qualified DATA joins into partial code, not fabricated function bodies or flow rewrites.
+        for (long[] call : new long[][] {
+            { 0x635b1, 0x64007 }, { 0x635c1, 0x64007 }, { 0x63cb5, 0x6405a },
+            { 0x63cd3, 0x631b0 }, { 0x63cde, 0x63251 }, { 0x63ce8, 0x641a1 },
+            { 0x641b3, 0x63251 }, { 0x6426a, 0x631b0 }
+        }) {
+            require(c.original().getOriginalByte(call[0]) == (byte) 0xe8 && call[0] + 3 + (short) word(c, call[0] + 1) == call[1], "changed selected original near CALL");
+            reference(c, call[0] + 1, call[1]);
+        }
         c.label(0x637fb, "bcc20_DEC_register_request_fragment");
         c.comment(0x637fb, "R168 partial0470:[064b,0663): current firstkind1,selector0b ->map04,+48->BYTE4c request. No whole callback or guaranteed two-DEC traversal inferred.");
         stub(c, 0x04f8, 0x0020, 0x05e7);
