@@ -2,6 +2,7 @@
 // Arguments: an existing task-private output directory.
 //@category LegacyToolchains
 
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.decompiler.DecompileResults;
 import ghidra.app.script.GhidraScript;
 import ghidra.app.util.importer.MessageLog;
+import ghidra.program.database.ProgramDB;
 import ghidra.program.database.SpecExtension;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
@@ -33,6 +35,7 @@ public class ValidateFScopy extends GhidraScript {
         Address helperAddress = mapped(0x5fc9);
         Function helper = currentProgram.getFunctionManager().getFunctionAt(helperAddress);
         require(helper != null && BorlandFScopyAnalyzer.CONVENTION.equals(helper.getCallingConventionName()), "The installed analyzer must have recognized the original helper during native analysis");
+        validateInternalContext(output, helperAddress);
 
         int version = SpecExtension.getVersionCounter(currentProgram);
         MessageLog log = new MessageLog();
@@ -119,7 +122,74 @@ public class ValidateFScopy extends GhidraScript {
         finally {
             decompiler.dispose();
         }
-        println("F_SCOPY VALIDATION PASS: native NE recognition; CX/offset-selector storage; far cleanup; no false ES/DF preservation; three real caller inputs. Outputs: " + output);
+        println("F_SCOPY VALIDATION PASS: native NE recognition; internal operand/address context rejection and normal control; CX/offset-selector storage; far cleanup; no false ES/DF preservation; three real caller inputs. Outputs: " + output);
+    }
+
+    private void validateInternalContext(Path output, Address originalEntry) throws Exception {
+        byte[] bytes = new byte[28];
+        require(currentProgram.getMemory().getBytes(originalEntry, bytes) == bytes.length, "Expected the complete original helper for context fixtures");
+        int[] lengths = { 1, 2, 1, 1, 1, 3, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 3 };
+        StringBuilder evidence = new StringBuilder();
+        for (String scenario : new String[] { "normal", "opsize", "addrsize" }) {
+            ProgramDB fixture = new ProgramDB("F_SCOPY context " + scenario, currentProgram.getLanguage(), currentProgram.getLanguage().getDefaultCompilerSpec(), this);
+            int transaction = fixture.startTransaction("Predecoded internal context witness");
+            try {
+                Address entry = fixture.getAddressFactory().getDefaultAddressSpace().getAddress(0x10000000);
+                Address end = entry.add(bytes.length - 1);
+                var block = fixture.getMemory().createInitializedBlock("helper", entry, bytes.length, (byte) 0, monitor, false);
+                block.setExecute(true);
+                fixture.getMemory().setBytes(entry, bytes);
+                Address address = entry;
+                // Decode each bounded instruction separately: entry disassembly can otherwise normalize flowing context.
+                for (int length : lengths) {
+                    Address instructionEnd = address.add(length - 1);
+                    for (String name : new String[] { "opsize", "addrsize" }) {
+                        BigInteger value = address.equals(entry.add(15)) && scenario.equals(name) ? BigInteger.ONE : BigInteger.ZERO;
+                        fixture.getProgramContext().setValue(fixture.getRegister(name), address, instructionEnd, value);
+                    }
+                    DisassembleCommand command = new DisassembleCommand(address, new AddressSet(address, instructionEnd), false);
+                    command.enableCodeAnalysis(false);
+                    require(command.applyTo(fixture, monitor), "Native context fixture disassembly failed: " + scenario + " at " + address);
+                    var instruction = fixture.getListing().getInstructionAt(address);
+                    require(instruction != null && instruction.getLength() == length, "Context witness must retain the qualified instruction lengths: " + scenario);
+                    address = address.add(length);
+                }
+                Address target = entry.add(15);
+                var instruction = fixture.getListing().getInstructionAt(target);
+                for (String name : new String[] { "opsize", "addrsize" }) {
+                    require(BigInteger.ZERO.equals(fixture.getProgramContext().getValue(fixture.getRegister(name), entry, false)), "Entry context must remain 16-bit: " + scenario);
+                    BigInteger expected = scenario.equals(name) ? BigInteger.ONE : BigInteger.ZERO;
+                    require(expected.equals(fixture.getProgramContext().getValue(fixture.getRegister(name), target, false)), "Internal native context witness was not established: " + scenario);
+                }
+                PcodeOp[] operations = instruction.getPcode();
+                int moveSize = scenario.equals("opsize") ? 4 : 2;
+                require(Arrays.stream(operations).anyMatch(operation -> operation.getOpcode() == PcodeOp.LOAD && operation.getOutput().getSize() == moveSize), "Native move width must reflect internal operand context: " + scenario);
+                var index = fixture.getRegister(scenario.equals("addrsize") ? "ESI" : "SI");
+                require(Arrays.stream(operations).anyMatch(operation -> operation.getOutput() != null && operation.getOutput().getAddress().equals(index.getAddress()) && operation.getOutput().getSize() == index.getMinimumByteSize()), "Native index width must reflect internal address context: " + scenario);
+                evidence.append(scenario).append(" entry=0/0 internal=").append(scenario.equals("opsize") ? 1 : 0).append('/').append(scenario.equals("addrsize") ? 1 : 0).append(' ').append(instruction).append(" length=").append(instruction.getLength()).append('\n');
+                for (PcodeOp operation : operations) {
+                    evidence.append("  PCODE ").append(operation).append('\n');
+                }
+                MessageLog log = new MessageLog();
+                int version = SpecExtension.getVersionCounter(fixture);
+                require(new BorlandFScopyAnalyzer().added(fixture, new AddressSet(entry, end), monitor, log), "Production context fixture analysis failed: " + log);
+                Function function = fixture.getFunctionManager().getFunctionAt(entry);
+                if (scenario.equals("normal")) {
+                    require(function != null && BorlandFScopyAnalyzer.CONVENTION.equals(function.getCallingConventionName()) && function.getStackPurgeSize() == 8, "Normal complete native helper must retain its contract");
+                }
+                else {
+                    require(function == null, "Incompatible internal context must not receive the helper function/contract: " + scenario);
+                    require(version == SpecExtension.getVersionCounter(fixture), "Rejected internal context must not install a prototype: " + scenario);
+                }
+                require(fixture.getListing().getInstructionAt(target).toString().equals(instruction.toString()) && Arrays.toString(fixture.getListing().getInstructionAt(target).getPcode()).equals(Arrays.toString(operations)), "Analyzer must preserve the decoded context witness: " + scenario);
+                evidence.append("contract=").append(function == null ? "none" : function.getCallingConventionName()).append('\n').append(log).append('\n');
+            }
+            finally {
+                fixture.endTransaction(transaction, false);
+                fixture.release(this);
+            }
+        }
+        Files.writeString(output.resolve("internal-context.txt"), evidence);
     }
 
     private Address mapped(long fileOffset) {

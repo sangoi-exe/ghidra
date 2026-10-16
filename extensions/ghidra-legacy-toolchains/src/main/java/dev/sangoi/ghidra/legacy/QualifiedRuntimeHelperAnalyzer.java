@@ -120,14 +120,14 @@ public abstract class QualifiedRuntimeHelperAnalyzer extends AbstractAnalyzer {
             if (instruction == null || instruction.getLength() != length) {
                 return false;
             }
-            address = address.add(length);
-        }
-        // Context can override a language's default operand/address size.
-        for (String name : new String[] { "opsize", "addrsize" }) {
-            var value = program.getProgramContext().getValue(program.getRegister(name), entry, false);
-            if (value == null || value.signum() != 0) {
-                return false;
+            // Context can override a language's default size at any instruction, not only entry.
+            for (String name : new String[] { "opsize", "addrsize" }) {
+                var value = program.getProgramContext().getValue(program.getRegister(name), address, false);
+                if (value == null || value.signum() != 0) {
+                    return false;
+                }
             }
+            address = address.add(length);
         }
         return true;
     }
