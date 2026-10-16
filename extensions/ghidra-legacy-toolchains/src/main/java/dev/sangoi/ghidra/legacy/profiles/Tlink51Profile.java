@@ -1,5 +1,7 @@
 package dev.sangoi.ghidra.legacy.profiles;
 
+import java.util.List;
+
 import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.util.importer.MessageLog;
@@ -29,6 +31,7 @@ public final class Tlink51Profile extends ToolchainProfile {
     private static final DataType BYTE = ByteDataType.dataType;
     private static final long CODE_FILE = 0x1200;
     private static final long SLOT_FILE = 0x11800;
+    private static final List<Integer> FAR_CODE_SLOTS = List.of(0xc, 0x16, 0xbb, 0xe3, 0xed, 0x1ce);
     private static final int[][] INLINE_TEXT_JOINS = { {0xde2c, 0xde2f, 0xde37}, {0xde3f, 0xde42, 0xde4c}, {0xde4e, 0xde51, 0xde59}, {0xdeb2, 0xdeb5, 0xdec7}, {0xded1, 0xded4, 0xdee0}, {0xdee9, 0xdeec, 0xdef1}, {0xdefd, 0xdf00, 0xdf1c} };
 
     public Tlink51Profile() {
@@ -100,9 +103,9 @@ public final class Tlink51Profile extends ToolchainProfile {
         function(c, 0x9bd6, 0x9c15, "submit_current_mapped_source_count", "R256: finiteSI shift/exchanges form first4200 numeric request viaABB0. THEN fresh002A handle, currentSI/0631/0633 count, restoredAX and current0ABC+SI selector supplyABD3 sourceDS:0. No countclamp; savedDS/DX/CX restored only on intact ordinary completion, BX requires currentSI preserved; AX/ES/flags not restored.");
         window(c, 0x9c15, 0x9cae, "output_loop_slice", "R256 partial loop: branches outside9CAE. Slot tests and currentreturnedAX gates distinguish9BD6 submissions; fresh0631 loop comparison, finite wrap/control mutations remain. No physical-output or universal bounded-loop claim.", monitor);
         window(c, 0xabb0, 0xabea, "numeric_wrapper_entries", "R256/R276 multi-entry partition, not one ordinary function. ABB1 INT21; savesBX/CLD; errorDDFE consumes index9/count2/savedAX and conditionally resumesABC4. ABD3 AH40 path compares actualreturnedAX with actualcurrentCX; mismatch index7/count0 conditionally resumesABE9. No numeric-service API identity, success, nonreturn or bounded-recursion guarantee.", monitor);
-        inlineReturns(c, monitor);
+        boolean inlineApplied = inlineReturns(c);
         farSlotFunctions(c);
-        log.appendMsg(ID, "Applied exact5.1 writer/family/control/association/vector, selected output/NB02 working records, numeric boundaries, seven conditional inline returns and static FAR-slot provenance. No historical C/tool attribution, resolved dynamic service/code alias, complete debug importer or physical-I/O success inferred.");
+        log.appendMsg(ID, "Applied exact5.1 writer/family/control/association/vector, selected output/NB02 working records, numeric boundaries and static FAR-slot provenance. " + (inlineApplied ? "Seven dependent conditional inline-return edits applied." : "Dependent inline-return edits skipped for preserved prerequisites.") + " No historical C/tool attribution, resolved dynamic service/code alias, complete debug importer or physical-I/O success inferred.");
     }
 
     private StructureDataType partial(String name, int length, String description) {
@@ -279,40 +282,38 @@ public final class Tlink51Profile extends ToolchainProfile {
         c.data(0x12800 + 0xd2, new ArrayDataType(CharDataType.dataType, 18, 1));
     }
 
-    private void inlineReturns(Context c, TaskMonitor monitor) throws Exception {
-        function(c, 0xb49f, 0xb4c5, "copy_length_text", "R276: savesAX/CX, swapsDS/ES, LODS length, zeroextends and copies bytes. No localCLD; cancallB3D0. ForwardSI/resume requiresDF0/valid extents/intactviews/returning non-destructive helpers; no generic string/ABI guarantee.");
-        function(c, 0xb4f0, 0xb4f8, "consume_return_inline_text", "R276: POP SI consumes nearreturn, ES=CS, CALL B49F thenJMP SI. Does NOT RET into adjacent inline text. Seven qualified calls receive conditional explicit fallthroughs to text-end; no ordinary noreturn.");
+    private boolean inlineReturns(Context c) throws Exception {
+        var copy = function(c, 0xb49f, 0xb4c5, "copy_length_text", "R276: savesAX/CX, swapsDS/ES, LODS length, zeroextends and copies bytes. No localCLD; cancallB3D0. ForwardSI/resume requiresDF0/valid extents/intactviews/returning non-destructive helpers; no generic string/ABI guarantee.");
+        var consume = function(c, 0xb4f0, 0xb4f8, "consume_return_inline_text", "R276: POP SI consumes nearreturn, ES=CS, CALL B49F thenJMP SI. Does NOT RET into adjacent inline text. Conditional inline-text fallthroughs require accepted current helper/shared-body facts; no ordinary noreturn.");
         int[][] intervals = { {0xddf9,0xde2f}, {0xde37,0xde42}, {0xde4c,0xde51}, {0xde59,0xdeb5}, {0xdec7,0xded4}, {0xdee0,0xdeec}, {0xdef1,0xdf00}, {0xdf1c,0xdf70} };
         AddressSet code = new AddressSet();
         for (int[] interval : intervals) {
-            window(c, interval[0], interval[1], "error_code_" + Integer.toHexString(interval[0]), "R276 exact code-only partition; neighboring length-prefixed text is DATA. Multipleentry, consumed-return frame and conditional helper/request effects; no ordinary noreturn.", monitor);
             code.add(c.range(CODE_FILE + interval[0], CODE_FILE + interval[1]));
         }
-        var manager = c.program().getFunctionManager();
-        var existing = manager.getFunctionsOverlapping(code);
-        while (existing.hasNext()) {
-            var function = existing.next();
-            if (function.getSignatureSource().isHigherPriorityThan(SourceType.ANALYSIS) || function.getSymbol().getSource().isHigherPriorityThan(SourceType.ANALYSIS)) {
-                throw new IllegalStateException(ID + " preserving higher-priority error function " + function.getEntryPoint());
+        var shared = c.function(CODE_FILE + 0xddf9, code, "tlink51_argument_consuming_error_entries", Function.UNKNOWN_STACK_DEPTH_CHANGE, "R276 code-only NONCONTIGUOUS body; multiple consumed-return entries, excludes all89 inline-data bytes and separateDF70 entry. Conditional helper/request effects, not an ordinary noreturn or historical C prototype.");
+        if (shared.applied()) {
+            shared.function().setComment("R276 shared alternative entriesDDF9/DDFE/DE03/DE08 selectAX2/4/1/0, POP returnDX beforeBP frame: indexBP+2/countBP+4/bytesBP+6. Code-only NONCONTIGUOUS body excludes all89 inline-data bytes and separateDF70 entry. If DF5A reached with intact saves, restoreDI/SI/BX/DS; savedreturn→DX; SP/AX=u16(BP+6+CURRENT count); restoreBP;PUSH DX/RET. For preCALLSP=S, finalSP=u16(S+4+n). AX/DX are not preserved interrupt results; CX/ES/flags not promised. Kind4 requests further opaque/numeric operations; actual return/termination/recursion remains unresolved. Unknown stack purge, NOT an ordinary noreturn or historical C prototype.");
+            for (int[] interval : intervals) {
+                c.label(CODE_FILE + interval[0], "tlink51_error_code_" + Integer.toHexString(interval[0]));
+                c.comment(CODE_FILE + interval[0], "R276 exact code-only partition; neighboring length-prefixed text is DATA. Multipleentry, consumed-return frame and conditional helper/request effects; no ordinary noreturn. Original NE1 offsets, FILE=1200+offset; partial/multi-entry partitions do not imply a containing function or stronger ABI.");
             }
-            manager.removeFunction(function.getEntryPoint());
-        }
-        Function shared = manager.createFunction("tlink51_argument_consuming_error_entries", c.mapped(CODE_FILE + 0xddf9), code, SourceType.ANALYSIS);
-        shared.setStackPurgeSize(Function.UNKNOWN_STACK_DEPTH_CHANGE);
-        shared.setComment("R276 shared alternative entriesDDF9/DDFE/DE03/DE08 selectAX2/4/1/0, POP returnDX beforeBP frame: indexBP+2/countBP+4/bytesBP+6. Code-only NONCONTIGUOUS body excludes all89 inline-data bytes and separateDF70 entry. If DF5A reached with intact saves, restoreDI/SI/BX/DS; savedreturn→DX; SP/AX=u16(BP+6+CURRENT count); restoreBP;PUSH DX/RET. For preCALLSP=S, finalSP=u16(S+4+n). AX/DX are not preserved interrupt results; CX/ES/flags not promised. Kind4 requests further opaque/numeric operations; actual return/termination/recursion remains unresolved. Unknown stack purge, NOT an ordinary noreturn or historical C prototype.");
-        for (int entry : new int[] { 0xddfe, 0xde03, 0xde08 }) {
-            c.label(CODE_FILE + entry, "tlink51_error_entry_" + Integer.toHexString(entry));
-        }
-        for (int[] join : INLINE_TEXT_JOINS) {
-            var call = c.program().getListing().getInstructionAt(c.mapped(CODE_FILE + join[0]));
-            if (call == null || !call.getFlowType().isCall() || call.getDefaultFlows().length != 1 || !call.getDefaultFlows()[0].equals(c.mapped(CODE_FILE + 0xb4f0))) {
-                throw new IllegalStateException(ID + " missing actual inline helper CALL at " + Integer.toHexString(join[0]));
+            for (int entry : new int[] { 0xddfe, 0xde03, 0xde08 }) {
+                c.label(CODE_FILE + entry, "tlink51_error_entry_" + Integer.toHexString(entry));
             }
-            call.setFallThrough(c.mapped(CODE_FILE + join[2]));
-            reference(c, CODE_FILE + join[0], CODE_FILE + join[1], RefType.DATA);
-            c.comment(CODE_FILE + join[0], "R276 CALL B4F0 consumes its return into inline length-prefixed DATA. Conditional clearDF/intactviews/returninghelpers resume at1:" + Integer.toHexString(join[2]) + ", modeled by native fallthrough override. SetDF/helper mutation/nonreturn invalidates this path; not an unconditional return guarantee.");
+            c.comment(CODE_FILE + 0xdf5a, "R276 conditional rebuilt return; count freshly reread atBP+4, SP/AX=u16(BP+6+count), DX savedreturn. Kind4/helper/INT effects remain unresolved; not conventional argument cleanup or error-result preservation.");
         }
-        c.comment(CODE_FILE + 0xdf5a, "R276 conditional rebuilt return; count freshly reread atBP+4, SP/AX=u16(BP+6+count), DX savedreturn. Kind4/helper/INT effects remain unresolved; not conventional argument cleanup or error-result preservation.");
+        boolean applied = copy.applied() && consume.applied() && shared.applied();
+        if (applied) {
+            for (int[] join : INLINE_TEXT_JOINS) {
+                var call = c.program().getListing().getInstructionAt(c.mapped(CODE_FILE + join[0]));
+                if (call == null || !call.getFlowType().isCall() || call.getDefaultFlows().length != 1 || !call.getDefaultFlows()[0].equals(c.mapped(CODE_FILE + 0xb4f0))) {
+                    throw new IllegalStateException(ID + " missing actual inline helper CALL at " + Integer.toHexString(join[0]));
+                }
+                call.setFallThrough(c.mapped(CODE_FILE + join[2]));
+                reference(c, CODE_FILE + join[0], CODE_FILE + join[1], RefType.DATA);
+                c.comment(CODE_FILE + join[0], "R276 CALL B4F0 consumes its return into inline length-prefixed DATA. Conditional clearDF/intactviews/returninghelpers resume at1:" + Integer.toHexString(join[2]) + ", modeled by native fallthrough override. SetDF/helper mutation/nonreturn invalidates this path; not an unconditional return guarantee.");
+            }
+        }
         c.function(CODE_FILE + 0xdd30, CODE_FILE + 0xdddc, "tlink51_consumed_near_frame_formatter", Function.UNKNOWN_STACK_DEPTH_CHANGE, "R276: POP nearreturn offset and precedingCS beforeBP frame; reconstructs FAR return. Initial argument cursorBP+10; selected%d consumes2, literal disk-full string consumesnone. String termination/views/DF/numeric helper effects remain conditional, not general formatting or historicalC ABI.");
         c.function(CODE_FILE + 0xdddc, CODE_FILE + 0xddf9, "tlink51_select_message_word", 2, "R276: finite doubled index, additive selector relocationDDE2 associates currentES withNE4:0A6F; table index7/9 select tool diagnostic strings, not service contracts.");
         var selectorSource = c.mapped(CODE_FILE + 0xdde2);
@@ -330,14 +331,15 @@ public final class Tlink51Profile extends ToolchainProfile {
         function(c, 0xa9b4, 0xa9db, "forward_error_request_word", "R276: current0194/019A pointer conditionalA9DB then frameword forwardedA9ED; no guaranteed external effects.");
         c.function(CODE_FILE + 0xa9db, CODE_FILE + 0xa9ed, "tlink51_numeric_request_41", 4, "R276: numericINT21 AH41 andRET4, not assigned API identity or external success.");
         c.function(CODE_FILE + 0xa9ed, CODE_FILE + 0xaa1d, "tlink51_numeric_request_4c", 2, "R276: calls01F9/009A and FARNE10:0037, then reloads framewordAX, setsAH4C andINT21. Selectedkind4 can submitAL2 under stated returning-frame premises; finalPOP BP/RET2 only IF interruptreturns. Not ordinarynoreturn/termination/exit-status proof.");
+        return applied;
     }
 
     private void farSlotFunctions(Context c) throws Exception {
-        for (int entry : new int[] { 0xc, 0x16, 0xbb, 0xe3, 0xed, 0x1ce }) {
-            var range = c.range(SLOT_FILE + entry, SLOT_FILE + entry + 5);
-            c.program().getListing().clearCodeUnits(range.getMinAddress(), range.getMaxAddress(), false);
-            c.function(SLOT_FILE + entry, SLOT_FILE + entry + 5, "tlink51_stored_far_jump_" + Integer.toHexString(entry), Function.UNKNOWN_STACK_DEPTH_CHANGE, "R175/R236/R256 actual selected caller target; complete storedEA+relocated4-byte target, initially commontrap3:0AFC. Conditional startup patch may change words, not leadingbyte; runtime callee/cleanup/preservation/service/selectorcodealias remain unknown.");
-            c.farReference(SLOT_FILE + entry + 1, 3, 0xafc, SLOT_FILE + 0xafc);
+        for (int entry : FAR_CODE_SLOTS) {
+            var slot = c.function(SLOT_FILE + entry, SLOT_FILE + entry + 5, "tlink51_stored_far_jump_" + Integer.toHexString(entry), Function.UNKNOWN_STACK_DEPTH_CHANGE, "R175/R236/R256 actual selected caller target; complete storedEA+relocated4-byte target, initially commontrap3:0AFC. Conditional startup patch may change words, not leadingbyte; runtime callee/cleanup/preservation/service/selectorcodealias remain unknown.");
+            if (slot.applied()) {
+                c.farReference(SLOT_FILE + entry + 1, 3, 0xafc, SLOT_FILE + 0xafc);
+            }
         }
         c.function(SLOT_FILE + 0xafc, SLOT_FILE + 0xb1a, "tlink51_common_numeric_trap", Function.UNKNOWN_STACK_DEPTH_CHANGE, "R175/R236: complete30-byte/18-instruction trap with selector fixupsNE12/13, numericINT21 thenINT3/INT00 and possible plainLRET. NO six-byte argument cleanup or proved returning descriptor constructor/API/physical service.");
         c.function(SLOT_FILE + 0x469, SLOT_FILE + 0x4e7, "tlink51_conditional_far_target_writer", Function.UNKNOWN_STACK_DEPTH_CHANGE, "R236: numericINT2F FB42 requests. Stores current returnedBX→ES:[DI+1], thenAX→[DI+3] only on returnedDX0. InitialCX from current0019 loaded once;04DE backedge04C3 does NOT reloadCX/ES/DI. Iteration savesAX/BX/DX only. Suitable unchanged progression covers105 positions, not105 returning calls; request3 hits000C only IF selectedES aliasescode. Final localLRET doesn't prove external service/argument contract.");
@@ -352,10 +354,15 @@ public final class Tlink51Profile extends ToolchainProfile {
             monitor.checkCancelled();
             long cell = SLOT_FILE + 2 + 5L * i;
             int first = Byte.toUnsignedInt(c.original().getOriginalByte(cell));
-            c.data(cell, slotType);
+            boolean code = FAR_CODE_SLOTS.contains(2 + 5 * i);
+            if (!code) {
+                c.data(cell, slotType);
+            }
             if (first == 0xea) {
                 ea++;
-                c.farReference(cell + 1, 3, 0xafc, SLOT_FILE + 0xafc);
+                if (!code) {
+                    c.farReference(cell + 1, 3, 0xafc, SLOT_FILE + 0xafc);
+                }
             }
             else if (first == 0xff) {
                 ff++;

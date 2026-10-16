@@ -6,12 +6,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.Objects;
 
 import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.Tlink401Profile;
 import dev.sangoi.ghidra.legacy.profiles.Tlink51Profile;
 import dev.sangoi.ghidra.legacy.profiles.TlinkWriterContract;
+import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
 import ghidra.app.plugin.core.analysis.AnalysisWorker;
@@ -26,6 +28,7 @@ import ghidra.program.model.data.UnsignedShortDataType;
 import ghidra.program.model.lang.Register;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Instruction;
 import ghidra.program.model.listing.Program;
 import ghidra.util.task.TaskMonitor;
 import ghidra.program.model.pcode.PcodeOp;
@@ -37,6 +40,9 @@ import ghidra.program.model.pcode.XmlEncode;
 public class ValidateTlinkProfiles extends GhidraScript {
     private ToolchainProfile.Context context;
     private final StringBuilder result = new StringBuilder();
+    private static final int[] FAR_CODE_SLOTS = {0xc,0x16,0xbb,0xe3,0xed,0x1ce};
+    private static final int[][] ERROR_INTERVALS = { {0xddf9,0xde2f}, {0xde37,0xde42}, {0xde4c,0xde51}, {0xde59,0xdeb5}, {0xdec7,0xded4}, {0xdee0,0xdeec}, {0xdef1,0xdf00}, {0xdf1c,0xdf70} };
+    private static final int[][] INLINE_TEXT_JOINS = { {0xde2c,0xde2f,0xde37}, {0xde3f,0xde42,0xde4c}, {0xde4e,0xde51,0xde59}, {0xdeb2,0xdeb5,0xdec7}, {0xded1,0xded4,0xdee0}, {0xdee9,0xdeec,0xdef1}, {0xdefd,0xdf00,0xdf1c} };
 
     @Override
     protected void run() throws Exception {
@@ -106,6 +112,15 @@ public class ValidateTlinkProfiles extends GhidraScript {
         require(before.equals(currentProgram.getListing().getComment(CommentType.PLATE, writer.getEntryPoint())), "Repeated application does not duplicate writer qualification");
         result.append(args[2].equals("automatic") ? "Repeated production analyzer native batch: unchanged datatype/symbol counts and writer comment.\n" : "Repeated explicit direct profile application: unchanged datatype/symbol counts and writer comment; automatic batch behavior not proved.\n");
         decompileWriter(writer, output);
+        if (ne && args[2].equals("automatic")) {
+            checkPatchedFunction51("F1 FAR-slot CALLF", 0x1180c, 0x1180c, 0xea, 0x9a, 17);
+            checkPatchedFunction51("F2 shared POP AX", 0xeff9, 0xf00d, 0x5a, 0x58, 37);
+            checkPreservedInlinePrerequisite51(0xc6f0, false);
+            checkPreservedInlinePrerequisite51(0xc69f, true);
+            checkPreservedInlinePrerequisite51(0xeff9, true);
+            check51();
+            result.append("Restored qualified original after all adverse fixtures: six code slots/99 raw DATA slots, eight-range body/89 inline DATA bytes and seven conditional joins remain intact.\n");
+        }
         // As with production facts, keep fixture installation from queuing unrelated native inference.
         String manualName = "user_owned_" + name;
         var ds = currentProgram.getRegister("DS");
@@ -138,7 +153,7 @@ public class ValidateTlinkProfiles extends GhidraScript {
         println("TLINK PROFILE VALIDATION PASS " + profile.id() + " " + args[2] + " " + args[3]);
     }
 
-    private void analyzeProfileChanges(String profileId) throws Exception {
+    private String collectProfileChanges() throws Exception {
         AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
         int logStart = manager.getMessageLog().toString().length();
         StringBuilder finalLog = new StringBuilder();
@@ -156,7 +171,211 @@ public class ValidateTlinkProfiles extends GhidraScript {
         finally {
             manager.removeListener(listener);
         }
-        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+        return finalLog.toString();
+    }
+
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        String finalLog = collectProfileChanges();
+        require(finalLog.contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+    }
+
+    @FunctionalInterface
+    private interface Fixture {
+        void install() throws Exception;
+    }
+
+    private void fixture(String name, Fixture fixture) throws Exception {
+        require(AutoAnalysisManager.getAnalysisManager(currentProgram).scheduleWorker(new AnalysisWorker() {
+            public String getWorkerName() {
+                return name;
+            }
+            public boolean analysisWorkerCallback(Program program, Object ignored, TaskMonitor workerMonitor) throws Exception {
+                fixture.install();
+                return true;
+            }
+        }, null, false, monitor), "Install native fixture without queuing unrelated inference: " + name);
+    }
+
+    private void decodeFixture(Address start, Address end) {
+        Address cursor = start;
+        while (cursor.compareTo(end) <= 0) {
+            var instruction = currentProgram.getListing().getInstructionAt(cursor);
+            if (instruction == null) {
+                var command = new DisassembleCommand(cursor, new AddressSet(start, end), false);
+                command.enableCodeAnalysis(false);
+                require(command.applyTo(currentProgram, monitor), "Decode deliberately changed native fixture: " + command.getStatusMsg());
+                instruction = currentProgram.getListing().getInstructionAt(cursor);
+            }
+            require(instruction != null && instruction.getMaxAddress().compareTo(end) <= 0, "Complete fixture instruction within its original extent");
+            cursor = cursor.add(instruction.getLength());
+        }
+    }
+
+    private String references(Address start, Address end) {
+        StringBuilder snapshot = new StringBuilder();
+        for (Address address : new AddressSet(start, end).getAddresses(true)) {
+            var refs = currentProgram.getReferenceManager().getReferencesFrom(address);
+            snapshot.append(address).append(' ').append(Arrays.stream(refs).map(r -> r.getToAddress() + "/" + r.getReferenceType() + "/" + r.getSource() + "/" + r.getOperandIndex()).sorted().toList()).append(';');
+        }
+        return snapshot.toString();
+    }
+
+    private String instructionState(Instruction instruction) throws Exception {
+        return HexFormat.of().formatHex(instruction.getBytes()) + " " + instruction + " " + Arrays.stream(instruction.getPcode(true)).map(Object::toString).toList();
+    }
+
+    private String repeat51() throws Exception {
+        MessageLog preparation = new MessageLog();
+        require(new Tlink51Profile().match(currentProgram, monitor) != null, "Actual original FileBytes identity remains true after current-code/manual changes");
+        require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, preparation), "Actual production early data phase must succeed before late qualification: " + preparation);
+        return collectProfileChanges();
+    }
+
+    private void restore51() throws Exception {
+        String log = repeat51();
+        require(log.contains("Applied " + Tlink51Profile.ID + " final facts") && log.contains("Seven dependent conditional inline-return edits applied."), "Restored original must requalify through actual production, including seven joins: " + log);
+    }
+
+    private void checkPatchedFunction51(String name, long entryFile, long patchFile, int originalByte, int patchedByte, int purge) throws Exception {
+        var listing = currentProgram.getListing();
+        var memory = currentProgram.getMemory();
+        var manager = currentProgram.getFunctionManager();
+        Address entry = context.mapped(entryFile);
+        Address patch = context.mapped(patchFile);
+        Function function = manager.getFunctionAt(entry);
+        require(function != null && function.getSymbol().getSource() == SourceType.ANALYSIS && !function.getSignatureSource().isHigherPriorityThan(SourceType.ANALYSIS), "Counterexample must target existing ANALYSIS facts, not a manual-function guard: " + name);
+        require(Byte.toUnsignedInt(context.original().getOriginalByte(patchFile)) == originalByte && Byte.toUnsignedInt(memory.getByte(patch)) == originalByte, "Actual named original/current opcode for " + name);
+        var instruction = listing.getInstructionAt(patch);
+        byte[] loaded = instruction.getBytes();
+        Address end = instruction.getMaxAddress();
+        int previousPurge = function.getStackPurgeSize();
+        String previousComment = function.getComment();
+        fixture("Install " + name, () -> {
+            listing.clearCodeUnits(patch, end, false);
+            memory.setByte(patch, (byte) patchedByte);
+            decodeFixture(patch, end);
+            function.setStackPurgeSize(purge);
+            function.setComment("Manual current-code facts for " + name);
+            currentProgram.getReferenceManager().addMemoryReference(patch, context.mapped(0x4e0b), RefType.DATA, SourceType.USER_DEFINED, 0);
+            currentProgram.getReferenceManager().addMemoryReference(end, context.mapped(0x4e0c), RefType.DATA, SourceType.USER_DEFINED, 1);
+        });
+        String beforeInstruction = instructionState(listing.getInstructionAt(patch));
+        String beforeRefs = references(patch, end);
+        long beforeId = function.getID();
+        AddressSet beforeBody = new AddressSet(function.getBody());
+        String beforeSignature = function.getPrototypeString(true, true);
+        String beforeComment = function.getComment();
+        result.append(name).append(" before: FILE").append(Long.toHexString(patchFile)).append(' ').append(beforeInstruction).append(";functionID=").append(beforeId).append(";body=").append(beforeBody).append(";purge=").append(purge).append(";refs=").append(beforeRefs).append('\n');
+        String log = repeat51();
+        require(log.contains("preserving current code") && log.contains("FILE " + Long.toHexString(patchFile)) && !log.contains("Applied " + Tlink51Profile.ID + " final facts"), "Visible current-code refusal without false final success: " + name + " " + log);
+        var after = manager.getFunctionAt(entry);
+        var afterInstruction = listing.getInstructionAt(patch);
+        require(after != null && after.getID() == beforeId && beforeBody.equals(after.getBody()) && beforeSignature.equals(after.getPrototypeString(true, true)) && after.getStackPurgeSize() == purge && beforeComment.equals(after.getComment()), "Refusal must preserve current function identity/body/signature/purge/comment, not just patched bytes: " + name);
+        require(afterInstruction != null && beforeInstruction.equals(instructionState(afterInstruction)) && beforeRefs.equals(references(patch, end)), "Refusal must preserve native instruction/effective pcode and all references over its full extent: " + name);
+        result.append(name).append(" after refusal: ").append(instructionState(afterInstruction)).append(";functionID=").append(after.getID()).append(";body=").append(after.getBody()).append(";purge=").append(after.getStackPurgeSize()).append(";refs=").append(references(patch, end)).append(";original identity=true;no final success.\n");
+        fixture("Restore " + name, () -> {
+            listing.clearCodeUnits(patch, end, false);
+            memory.setBytes(patch, loaded);
+            decodeFixture(patch, end);
+            function.setStackPurgeSize(previousPurge);
+            function.setComment(previousComment);
+        });
+        restore51();
+    }
+
+    private void checkPreservedInlinePrerequisite51(long entryFile, boolean manualFlow) throws Exception {
+        var listing = currentProgram.getListing();
+        var memory = currentProgram.getMemory();
+        Address entry = context.mapped(entryFile);
+        Function function = currentProgram.getFunctionManager().getFunctionAt(entry);
+        String originalName = function.getName();
+        SourceType originalNameSource = function.getSymbol().getSource();
+        SourceType originalSignatureSource = function.getSignatureSource();
+        var originalReturn = function.getReturnType();
+        AddressSet originalBody = new AddressSet(function.getBody());
+        int originalPurge = function.getStackPurgeSize();
+        String originalComment = function.getComment();
+        byte[] loaded = new byte[8];
+        boolean ordinaryReturn = entryFile == 0xc6f0;
+        if (ordinaryReturn) {
+            require(memory.getBytes(entry, loaded) == loaded.length, "Retain actual eight-byte consumed-return helper before ordinary RET fixture");
+        }
+        String[] originalComments = new String[INLINE_TEXT_JOINS.length];
+        for (int i = 0; i < INLINE_TEXT_JOINS.length; i++) {
+            originalComments[i] = listing.getComment(CommentType.PLATE, context.mapped(0x1200 + INLINE_TEXT_JOINS[i][0]));
+        }
+        fixture("Install preserved inline prerequisite FILE" + Long.toHexString(entryFile), () -> {
+            function.setName("manual_prerequisite_" + Long.toHexString(entryFile), SourceType.USER_DEFINED);
+            function.setReturnType(UnsignedShortDataType.dataType, SourceType.USER_DEFINED);
+            function.setStackPurgeSize(29);
+            function.setComment("Manual prerequisite contract FILE" + Long.toHexString(entryFile));
+            if (ordinaryReturn) {
+                listing.clearCodeUnits(entry, entry.add(7), false);
+                memory.setBytes(entry, new byte[] {(byte) 0xc3,(byte) 0x90,(byte) 0x90,(byte) 0x90,(byte) 0x90,(byte) 0x90,(byte) 0x90,(byte) 0x90});
+                decodeFixture(entry, entry.add(7));
+            }
+            if (entryFile == 0xeff9) {
+                function.setBody(context.range(0xeff9, 0xf02f));
+            }
+            for (int i = 0; i < INLINE_TEXT_JOINS.length; i++) {
+                int[] join = INLINE_TEXT_JOINS[i];
+                var call = listing.getInstructionAt(context.mapped(0x1200 + join[0]));
+                call.clearFallThroughOverride();
+                if (manualFlow && i == 0) {
+                    call.setFallThrough(context.mapped(0xf059));
+                }
+                var reference = currentProgram.getReferenceManager().getReference(call.getAddress(), context.mapped(0x1200 + join[1]), 0);
+                require(reference != null && reference.getReferenceType() == RefType.DATA && reference.getSource() == SourceType.ANALYSIS, "Remove only this fixture's prior profile-dependent DATA reference");
+                currentProgram.getReferenceManager().delete(reference);
+                listing.setComment(call.getAddress(), CommentType.PLATE, "Manual current caller " + Integer.toHexString(join[0]));
+            }
+        });
+        long id = function.getID();
+        String signature = function.getPrototypeString(true, true);
+        AddressSet body = new AddressSet(function.getBody());
+        String comment = function.getComment();
+        Address[] flows = new Address[INLINE_TEXT_JOINS.length];
+        boolean[] overridden = new boolean[INLINE_TEXT_JOINS.length];
+        String[] refs = new String[INLINE_TEXT_JOINS.length];
+        for (int i = 0; i < INLINE_TEXT_JOINS.length; i++) {
+            var call = listing.getInstructionAt(context.mapped(0x1200 + INLINE_TEXT_JOINS[i][0]));
+            flows[i] = call.getFallThrough();
+            overridden[i] = call.isFallThroughOverridden();
+            refs[i] = references(call.getAddress(), call.getAddress());
+        }
+        String log = repeat51();
+        require(log.contains("Applied " + Tlink51Profile.ID + " final facts") && log.contains("Dependent inline-return edits skipped for preserved prerequisites.") && !log.contains("Seven dependent conditional inline-return edits applied."), "Independent facts may apply, but preserved prerequisites must visibly skip dependent joins: " + log);
+        require(function.getID() == id && function.getSignatureSource() == SourceType.USER_DEFINED && signature.equals(function.getPrototypeString(true, true)) && body.equals(function.getBody()) && function.getStackPurgeSize() == 29 && function.getComment().startsWith(comment), "Preserve actual prerequisite identity/signature/body/purge and manual comment text FILE" + Long.toHexString(entryFile));
+        if (ordinaryReturn) {
+            require(listing.getInstructionAt(entry).getFlowType().isTerminal() && Arrays.stream(listing.getInstructionAt(entry).getPcode(true)).anyMatch(op -> op.getOpcode() == PcodeOp.RETURN), "Preserved consume helper actually has ordinary RET/RETURN behavior");
+        }
+        result.append("F3 preserved prerequisite FILE").append(Long.toHexString(entryFile)).append(";functionID=").append(id).append(";signature=").append(signature).append(";body=").append(body).append(";purge29;ordinary RET=").append(ordinaryReturn).append(";dependent flow/reference/comment edits skipped.\n");
+        for (int i = 0; i < INLINE_TEXT_JOINS.length; i++) {
+            int[] join = INLINE_TEXT_JOINS[i];
+            var call = listing.getInstructionAt(context.mapped(0x1200 + join[0]));
+            require(Objects.equals(flows[i], call.getFallThrough()) && overridden[i] == call.isFallThroughOverridden() && refs[i].equals(references(call.getAddress(), call.getAddress())), "Preserved prerequisite must not install or remap conditional fallthrough/DATA references at " + Integer.toHexString(join[0]));
+            require(("Manual current caller " + Integer.toHexString(join[0])).equals(listing.getComment(CommentType.PLATE, call.getAddress())), "Preserved prerequisite must not append dependent caller contract comments");
+            result.append("  CALL ").append(Integer.toHexString(join[0])).append(" unchanged fallthrough=").append(call.getFallThrough()).append(";overridden=").append(call.isFallThroughOverridden()).append(";refs=").append(refs[i]).append('\n');
+        }
+        fixture("Restore inline prerequisite FILE" + Long.toHexString(entryFile), () -> {
+            if (ordinaryReturn) {
+                listing.clearCodeUnits(entry, entry.add(7), false);
+                memory.setBytes(entry, loaded);
+                decodeFixture(entry, entry.add(7));
+            }
+            function.setName(originalName, originalNameSource);
+            function.setReturnType(originalReturn, originalSignatureSource);
+            function.setSignatureSource(originalSignatureSource);
+            function.setBody(originalBody);
+            function.setStackPurgeSize(originalPurge);
+            function.setComment(originalComment);
+            for (int i = 0; i < INLINE_TEXT_JOINS.length; i++) {
+                var call = listing.getInstructionAt(context.mapped(0x1200 + INLINE_TEXT_JOINS[i][0]));
+                call.clearFallThroughOverride();
+                listing.setComment(call.getAddress(), CommentType.PLATE, originalComments[i]);
+            }
+        });
+        restore51();
     }
 
     private boolean contains(Varnode[] storage, String name) {
@@ -280,11 +499,15 @@ public class ValidateTlinkProfiles extends GhidraScript {
         checkInstruction(0x4c7d, "8b36a805");
         checkFunction(0x1200 + 0xb49f, 0x1200 + 0xb4c5, 24);
         checkFunction(0x1200 + 0xb4f0, 0x1200 + 0xb4f8, 5);
-        int[][] joins = { {0xde2c,0xde2f,0xde37}, {0xde3f,0xde42,0xde4c}, {0xde4e,0xde51,0xde59}, {0xdeb2,0xdeb5,0xdec7}, {0xded1,0xded4,0xdee0}, {0xdee9,0xdeec,0xdef1}, {0xdefd,0xdf00,0xdf1c} };
         Function shared = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x1200 + 0xddf9));
         require(shared != null && shared.getBody().getNumAddresses() == 286 && shared.getStackPurgeSize() == Function.UNKNOWN_STACK_DEPTH_CHANGE && !shared.hasNoReturn(), "Shared consumed-frame body is code-only286 bytes, unknown cleanup, not noreturn");
+        AddressSet expectedBody = new AddressSet();
+        for (int[] interval : ERROR_INTERVALS) {
+            expectedBody.add(context.range(0x1200 + interval[0], 0x1200 + interval[1]));
+        }
+        require(shared.getBody().equals(expectedBody), "All eight exact code intervals must form the shared body, not just the same byte count");
         require(shared.getComment().contains("CURRENT count") && shared.getComment().contains("S+4+n"), "Current-count reconstructed-return semantics remain qualified");
-        for (int[] join : joins) {
+        for (int[] join : INLINE_TEXT_JOINS) {
             checkNear(0x1200 + join[0], 0x1200 + 0xb4f0);
             var call = currentProgram.getListing().getInstructionAt(context.mapped(0x1200 + join[0]));
             require(call.getFallThrough().equals(context.mapped(0x1200 + join[2])), "Native explicit inline-text resume");
@@ -314,6 +537,18 @@ public class ValidateTlinkProfiles extends GhidraScript {
         for (int i = 0; i < 105; i++) {
             long cell = 0x11802 + 5L * i;
             int first = Byte.toUnsignedInt(context.original().getOriginalByte(cell));
+            var range = context.range(cell, cell + 5);
+            if (Arrays.binarySearch(FAR_CODE_SLOTS, 2 + 5 * i) >= 0) {
+                Function slot = currentProgram.getFunctionManager().getFunctionAt(range.getMinAddress());
+                var instruction = currentProgram.getListing().getInstructionAt(range.getMinAddress());
+                require(first == 0xea && slot != null && slot.getBody().equals(range) && instruction != null && instruction.getLength() == 5 && instruction.getFlowType().isJump(), "Each of the six selected raw EA slots is one complete native five-byte function");
+                require(!currentProgram.getListing().getDefinedData(range, true).hasNext(), "Selected final-code slot must not retain early raw DATA");
+            }
+            else {
+                var data = currentProgram.getListing().getDefinedDataAt(range.getMinAddress());
+                require(data != null && data.getLength() == 5 && data.getDataType().getName().equals("StoredFarSlot5"), "All99 remaining raw slots, EA and FF, retain the exact native DATA representation");
+                require(!currentProgram.getListing().getInstructions(range, true).hasNext() && !currentProgram.getFunctionManager().getFunctionsOverlapping(range).hasNext(), "Unselected raw slot remains DATA, not native code/function");
+            }
             if (first == 0xea) {
                 ea++;
                 require(currentProgram.getReferenceManager().getReference(context.mapped(cell + 1), context.mapped(0x122fc), 0) != null, "Original EA slot target joins common trap, not invented loaded service");
@@ -342,7 +577,7 @@ public class ValidateTlinkProfiles extends GhidraScript {
         for (long[] join : new long[][] { {0x1200+0x665c,0x1180c}, {0x1200+0x9cf4,0x118e3}, {0x1200+0x9d01,0x118ed}, {0x1200+0x9d71,0x118bb}, {0x1200+0x9da4,0x1180c} }) {
             require(currentProgram.getReferenceManager().getReference(context.mapped(join[0]), context.mapped(join[1]), 0) != null, "Actual singleton FAR relocation reference");
         }
-        result.append("5.1: separate dynamic-domain types/current consumers; actual writer/copy callers; header/segment/NB02 producers and finite numeric helpers; seven CALL/data/resume joins;286 code/89data bytes;97EA/8FF slots/native target joins; patch backedge/current-state and IRET/service/codealias uncertainty qualified.\n");
+        result.append("5.1: separate dynamic-domain types/current consumers; actual writer/copy callers; header/segment/NB02 producers and finite numeric helpers; seven CALL/data/resume joins;286 code/89data bytes;six selected code/99 raw DATA slots within97EA/8FF/native target joins; patch backedge/current-state and IRET/service/codealias uncertainty qualified.\n");
     }
 
     private void check401() throws Exception {
