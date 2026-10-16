@@ -2,7 +2,7 @@
 
 Status: on-hold
 Task mode: Doctrine
-Lifecycle phase: Initial
+Lifecycle phase: Implementation
 Strategy epoch: 1
 Plan kind: Feature / PRD Plan
 Secondary kind: Bugfix / Regression Plan (five reproduced defects in existing extension owners)
@@ -20,8 +20,9 @@ Authority is the current user in source session `01a13bb1-5597-7090-a92b-8426359
 - At `2026-10-15T20:54:31.939-03:00`, turn `01a141fd-25f4-7601-86af-4c1279a0bb7b`, source line 6940, the user answered `confirmo, mas também verifique esses itens:` and supplied the five findings plus `disassembly.txt` and `probes.txt`. This confirmed the four candidate groups and requested verification, not automatic adoption of every reviewer recommendation.
 - The assistant reproduced all five defects and paraphrased the delta at source line 7133, `2026-10-15T21:11:06.930-03:00`: add the five corrections to the same delivery, before the candidates, in the current components without new core/loader changes; preserve conflicts/manual work, refuse contracts incompatible with current code/context and correct pagination arithmetic.
 - At `2026-10-15T21:31:45.507-03:00`, turn `01a1421f-3a06-7462-abf4-1a9463bae320`, source line 7140, the user answered `sim, faça isso`. This confirms the delta and selects correction in the existing owners. The earlier MCP exclusion is narrowed only for the reproduced pagination defect and its direct followers.
+- After the local Plan Gate returned `PROCEED` and the assistant requested the required later implementation authorization, the user answered `sim, favor` at `2026-10-15T21:49:06.346-03:00`, turn `01a1422f-1bb8-70e2-87a8-f16b2ba116eb`, source line 7264. This activates Implementation of the approved complete result. It does not select a Code Gate, deployment or external write.
 
-No material route decision remains open before the Plan Gate. The normal post-Gate implementation checkpoint and the later exact Code Gate selection remain required. There is no Gate override, residual-risk acceptance, deployment authorization or external-write authorization. The preceding integrated-expansion plan remains complete; this is a new task, not a reopening of its completion verdict.
+The initial Scope and route decisions remain confirmed. The normal post-Gate implementation checkpoint is closed by the later user authorization; a newly observed application-sequencing decision is recorded under the current blocker below. The eventual exact Code Gate selection remains required. There is no Gate override, residual-risk acceptance, deployment authorization or external-write authorization. The preceding integrated-expansion plan remains complete; this is a new task, not a reopening of its completion verdict.
 
 ## User goal and primary behavior
 
@@ -92,9 +93,11 @@ Use the already-built matching SDK at `/home/lucas/.cache/codex/segmented-call-r
 
 The root retains strategy, semantic integration, Git and final proof. Bounded Workers implement the established owner corrections and candidate additions; exact write footprints and validation-read dependencies are established before dispatch. No concurrent writer may change a shared validation dependency. There is no subordinate microtask annex; the root's transient Microtask Program is the execution projection, not another intent authority.
 
-Current Plan Gate: local `Senior Plan Auditor / Intent contract audit` on `/root/safe_legacy_candidates_plan_audit` returned `PROCEED`, with no material findings, for this complete epoch1 Intent Contract. The reviewer accounted for every required contract field, corroborated the current-user chronology and native before-state evidence, and reported no required unreviewed or evidence-blocked field. No tests were rerun and no implementation was reviewed. Root applied the sole registered Doctrine / Initial / PROCEED transition: this plan is on-hold in Initial pending later current-user implementation authorization. No implementation has started.
+Current Plan Gate: local `Senior Plan Auditor / Intent contract audit` on `/root/safe_legacy_candidates_plan_audit` returned `PROCEED`, with no material findings, for this complete epoch1 Intent Contract. The reviewer accounted for every required contract field, corroborated the current-user chronology and native before-state evidence, and reported no required unreviewed or evidence-blocked field. No tests were rerun and no implementation was reviewed. Root applied the required hold transition. The later user authorization at `2026-10-15T21:49:06.346-03:00` activated Implementation. The present hold is for the newly observed blocker below, not a repetition of that completed checkpoint.
 
 Current Code Gate: not selected for this task. Previous local selections expired with their terminal outcomes. Select one of local Senior Code Reviewer, ChatGPT Web Extra High or ChatGPT Web Pro for the eventual committed candidate; no selection is inferred now.
 
-Blocker: required later current-user implementation authorization after the completed Plan Gate.
-Next high-level action: obtain that authorization, activate Implementation and dispatch the first correction slice. The confirmed Scope and selected route remain closed; no new paraphrase or Plan Gate is required unless material evidence changes them.
+Execution checkpoint: pagination is corrected in `c85f7d109215112a8d109f50a8595e0de447be84` with 12 focused tests passing after two demonstrated failures. Per-instruction helper context is corrected in `3e86200e17f3046ae77e2806e0c77366b2080d28`; native adverse-context fixtures are rejected and existing helper validators pass. These are interim unreviewed checkpoints, not completed delivery. The data-preservation slice passes direct native proof but prevents required fresh automatic profile completion because native inference creates conflicting data before the current late profile pass. Its two changed files remain uncommitted; no new candidate work has started. The [execution record](../task-logs/2026-10-15-safe-legacy-profile-candidates.md) owns the attempt ledger, evidence and remaining proof gaps.
+
+Blocker: current-user decision on the demonstrated profile application-order conflict. Root recommends separating early data preparation from late function/contract application inside the existing extension/native queue, but has not selected or implemented that material sequencing change. The current Scope and acceptance remain unchanged; no new Gate is launched while the decision is pending.
+Next high-level action: obtain the sequencing decision, amend this Intent Contract only as authorized, then resume the affected correction under the applicable resident route. Existing projects, the two safe checkpoints and the failing disposable slice remain preserved.

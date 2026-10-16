@@ -1,5 +1,13 @@
 # Local fork changelog
 
+## In progress — safe profiles and new RE candidates
+
+- Correct overflow in both MCP pagination helpers; the two reproduced maximum-limit failures now pass within 12 focused tests. Checkpoint `c85f7d109215112a8d109f50a8595e0de447be84` is not yet integration-reviewed.
+
+- Qualify operand/address context at every recognized helper instruction. Native F_SCOPY internal-context cases are rejected, the normal control is accepted, and existing helper/caller validators pass. Checkpoint `3e86200e17f3046ae77e2806e0c77366b2080d28` does not close the separately unverified memset-target check.
+
+- Stop the data-preservation slice after direct proof passes but fresh automatic SimTower profile completion fails on data created before the late profile pass. The new candidates remain unimplemented. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) awaits the user's application-sequencing decision; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves the evidence and incomplete state. No final Code Gate, deployment or push has occurred.
+
 ## Unreleased — integrated toolchain analysis and segmented C
 
 - Record the previous Johnny/SimTower commit-screening limits and useful evidence in [the local commit-frontier report](reports/2026-10-15-re-commit-frontier.md). Screen19/22 subsequent local subjects at fixed tips, distinguish selected semantic review from subject coverage, and retain new helper/profile candidates without automatically adding them to implementation Scope.
