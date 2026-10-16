@@ -462,9 +462,11 @@ public class DecompilerSwitchAnalysisCmd extends BackgroundCommand<Program> {
 					continue;
 				}
 			}
-			CreateDataCmd cmd = new CreateDataCmd(addr, true, fulldt);
-			cmd.applyTo(program);
-			markDataAsConstant(addr);
+			// Preserve defined data intersecting any part of the entry, including offcuts.
+			CreateDataCmd cmd = new CreateDataCmd(addr, false, fulldt);
+			if (cmd.applyTo(program)) {
+				markDataAsConstant(addr);
+			}
 		}
 
 		// Create pointer table references when unable to apply pointer datatype

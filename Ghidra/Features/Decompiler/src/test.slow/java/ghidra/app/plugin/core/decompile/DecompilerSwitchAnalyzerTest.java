@@ -20,14 +20,16 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import generic.test.AbstractGenericTest;
+import ghidra.app.cmd.function.DecompilerSwitchAnalysisCmd;
 import ghidra.app.plugin.core.analysis.DecompilerSwitchAnalyzer;
 import ghidra.framework.options.Options;
 import ghidra.program.database.ProgramBuilder;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
+import ghidra.program.model.data.*;
 import ghidra.program.model.listing.*;
-import ghidra.program.model.symbol.Reference;
-import ghidra.program.model.symbol.Symbol;
+import ghidra.program.model.pcode.JumpTable;
+import ghidra.program.model.symbol.*;
 import ghidra.util.task.TaskMonitor;
 
 /**
@@ -168,6 +170,136 @@ public class DecompilerSwitchAnalyzerTest extends AbstractGenericTest {
 	private void assertNoOperandReference(int opIndex, Instruction instr) {
 		Reference[] refs = instr.getOperandReferences(opIndex);
 		assertEquals("No reference on operand " + opIndex, 0, refs.length);
+	}
+
+	@Test
+	public void testLoadTablePreservesArray() throws Exception {
+		assertLoadTablePreservesData(new ArrayDataType(WordDataType.dataType, 24, 2),
+			"0x1000");
+	}
+
+	@Test
+	public void testLoadTablePreservesStructure() throws Exception {
+		StructureDataType structure = new StructureDataType("ExistingTable", 0);
+		structure.add(new ArrayDataType(WordDataType.dataType, 24, 2));
+		assertLoadTablePreservesData(structure, "0x1000");
+	}
+
+	@Test
+	public void testLoadTablePreservesArrayStartingBeforeTable() throws Exception {
+		assertLoadTablePreservesData(new ArrayDataType(WordDataType.dataType, 24, 2),
+			"0x0fff");
+	}
+
+	@Test
+	public void testLoadTablePreservesArrayStartingInsideCell() throws Exception {
+		assertLoadTablePreservesData(new ArrayDataType(WordDataType.dataType, 24, 2),
+			"0x1001");
+	}
+
+	private void assertLoadTablePreservesData(DataType dataType, String dataAddress) throws Exception {
+		createLoadTableProgram();
+		int txId = program.startTransaction("Test load table preservation");
+		try {
+			Listing listing = program.getListing();
+			Address start = addr(dataAddress);
+			Data existing = listing.createData(start, dataType);
+			Address end = existing.getMaxAddress();
+			ReferenceManager references = program.getReferenceManager();
+			Reference first = references.addMemoryReference(start, addr("0x1100"), RefType.DATA,
+				SourceType.USER_DEFINED, 0);
+			Reference last = references.addMemoryReference(end, addr("0x1102"), RefType.DATA,
+				SourceType.USER_DEFINED, 0);
+			Symbol label = program.getSymbolTable().createLabel(start, "existing_table",
+				SourceType.USER_DEFINED);
+
+			labelLoadTable();
+
+			Data preserved = listing.getDefinedDataAt(start);
+			assertNotNull("Existing data was cleared", preserved);
+			assertTrue(dataType.isEquivalent(preserved.getDataType()));
+			assertEquals(end, preserved.getMaxAddress());
+			assertArrayEquals(new Reference[] { first }, references.getReferencesFrom(start));
+			assertArrayEquals(new Reference[] { last }, references.getReferencesFrom(end));
+			assertEquals(label, program.getSymbolTable().getPrimarySymbol(start));
+		}
+		finally {
+			program.endTransaction(txId, true);
+			builder.dispose();
+		}
+	}
+
+	@Test
+	public void testLoadTableCreatesCellsInUndefinedStorage() throws Exception {
+		createLoadTableProgram();
+		int txId = program.startTransaction("Test undefined load table");
+		try {
+			// Include explicitly defined undefined storage as well as untyped bytes.
+			program.getListing().createData(addr("0x1000"), Undefined8DataType.dataType);
+			labelLoadTable();
+			assertLoadTableCells();
+		}
+		finally {
+			program.endTransaction(txId, true);
+			builder.dispose();
+		}
+	}
+
+	@Test
+	public void testLoadTablePreservesExistingCells() throws Exception {
+		createLoadTableProgram();
+		int txId = program.startTransaction("Test existing load table cells");
+		try {
+			for (int i = 0; i < 24; i++) {
+				program.getListing().createData(addr("0x1000").add(2 * i), WordDataType.dataType);
+			}
+			ReferenceManager references = program.getReferenceManager();
+			Reference first = references.addMemoryReference(addr("0x1000"), addr("0x1100"),
+				RefType.DATA, SourceType.USER_DEFINED, 0);
+			Reference last = references.addMemoryReference(addr("0x102e"), addr("0x1102"),
+				RefType.DATA, SourceType.USER_DEFINED, 0);
+
+			labelLoadTable();
+
+			assertLoadTableCells();
+			assertArrayEquals(new Reference[] { first }, references.getReferencesFrom(addr("0x1000")));
+			assertArrayEquals(new Reference[] { last }, references.getReferencesFrom(addr("0x102e")));
+		}
+		finally {
+			program.endTransaction(txId, true);
+			builder.dispose();
+		}
+	}
+
+	private void createLoadTableProgram() throws Exception {
+		builder = new ProgramBuilder("LoadTableTest", "x86:LE:32:default", "gcc", null);
+		builder.createMemory("tables", "0x0f00", 0x300);
+		program = builder.getProgram();
+	}
+
+	private void labelLoadTable() throws Exception {
+		JumpTable table = new JumpTable();
+		JumpTable.LoadTable loadTable = (JumpTable.LoadTable) invokeConstructor(
+			JumpTable.LoadTable.class, new Class<?>[] { JumpTable.class }, new Object[] { table });
+		setInstanceField("addr", loadTable, addr("0x1000"));
+		setInstanceField("size", loadTable, 2);
+		setInstanceField("num", loadTable, 24);
+		DecompilerSwitchAnalysisCmd cmd = new DecompilerSwitchAnalysisCmd(null);
+		setInstanceField("program", cmd, program);
+		invokeInstanceMethod("labelLoadTable", cmd,
+			new Class<?>[] { JumpTable.LoadTable.class, Address[].class, Symbol[].class,
+				Namespace.class, TaskMonitor.class },
+			new Object[] { loadTable, new Address[] { addr("0x1100") }, new Symbol[0],
+				program.getGlobalNamespace(), TaskMonitor.DUMMY });
+	}
+
+	private void assertLoadTableCells() {
+		for (int i = 0; i < 24; i++) {
+			Data cell = program.getListing().getDefinedDataAt(addr("0x1000").add(2 * i));
+			assertNotNull("Missing load table cell " + i, cell);
+			assertEquals(2, cell.getLength());
+			assertTrue(cell.getDataType() instanceof AbstractIntegerDataType);
+		}
 	}
 	
 	private void assertNumOperandReferences(int opIndex, Instruction instr, int num) {
