@@ -6,7 +6,7 @@
 
 - Qualify operand/address context at every recognized helper instruction. Native F_SCOPY internal-context cases are rejected, the normal control is accepted, and existing helper/caller validators pass. Checkpoint `3e86200e17f3046ae77e2806e0c77366b2080d28` does not close the separately unverified memset-target check.
 
-- Stop the data-preservation slice after direct proof passes but fresh automatic SimTower profile completion fails on data created before the late profile pass. The new candidates remain unimplemented. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) awaits the user's application-sequencing decision; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves the evidence and incomplete state. No final Code Gate, deployment or push has occurred.
+- Stop the data-preservation slice after direct proof passes but fresh automatic SimTower profile completion fails on data created before the late profile pass. The user selected separate early data preparation and late function/contract application within the existing extension. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) records that sequencing amendment, not an implemented correction; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves the evidence and incomplete state. New candidates, final Code Gate, deployment and push remain unfinished or unauthorized as recorded there.
 
 ## Unreleased — integrated toolchain analysis and segmented C
 

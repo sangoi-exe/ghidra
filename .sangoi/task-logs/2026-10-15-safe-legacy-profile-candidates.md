@@ -50,13 +50,15 @@ Read-only `/root/safe_profile_order_recon` traced the existing scheduling path. 
 
 Moving the complete profile earlier is not an established closure. `X86FunctionPurgeAnalyzer` runs at function-analysis priority, and `FunctionPurgeAnalysisCmd` recomputes unknown cleanup values. The current late batch intentionally retains qualified UNKNOWN values and function boundaries. `scheduleWorker(..., false, ...)` suppresses new change events only; it does not remove already queued analysis. Root directly inspected this path. Earlier whole-profile application has not been validated and is not selected.
 
-The current causal frontier is the existing profile application sequence: early data definition before inference versus late function/contract facts after inference, across the current profile consumers and validators. No loader/core change or new process is indicated. A split into these responsibilities is a candidate material sequencing change, not an implemented or approved route. Replaying the whole profile twice or weakening data preservation is not selected.
+The current causal frontier is the existing profile application sequence: early data definition before inference versus late function/contract facts after inference, across the current profile consumers and validators. No loader/core change or new process is indicated. The user selected this responsibility split in the decision below; it remains unimplemented. Replaying the whole profile twice or weakening data preservation is not selected.
 
-### Recommended decision and one next verification
+### Selected decision and one next verification
 
-Recommend that the user authorize separate early data preparation and late function/contract application within the existing extension/native analysis queue, with direct profile/validator propagation. Keep all confirmed preservation/current-code requirements and the four candidate groups. This changes the internal application sequencing and profile responsibility boundary, so root requests the current-user decision before another data correction or plan amendment.
+The assistant proposed separate early data preparation and late function/contract application within the existing extension/native analysis queue, with direct profile/validator propagation. The user selected that proposal with `sim`, turn `01a14248-7217-7791-9834-a306b2c6784f`, at `2026-10-15T22:16:46.847-03:00`, source-session line 7544, following the exact paraphrase at line 7537. The confirmed preservation/current-code requirements and all four candidate groups remain unchanged. The canonical plan records the internal sequencing amendment.
 
-If selected, the next verification is one fresh automatic SimTower import using the existing full profile validator and preservation controls. It must establish both the required final data/function facts and unchanged conflict preservation. Do not add an independent trace framework or repeatedly reapply the whole profile merely to get a green result.
+The local Plan Auditor on `/root/safe_legacy_candidates_plan_audit` returned `PROCEED` for Doctrine / Plan amendment, with full contract-field coverage and no material findings or required evidence-blocked fields. It confirmed the stable Scope/strategy boundaries and the immediate end-state oracle. The reviewer did not rerun tests or approve implementation. Root recorded the registered hold transition; later current-user implementation authorization remains required before implementing the selected division.
+
+After the planning/implementation checkpoints close, the next verification is one fresh automatic SimTower import using the existing full profile validator and preservation controls. It must establish both the required final data/function facts and unchanged conflict preservation. Do not add an independent trace framework or repeatedly reapply the whole profile merely to get a green result.
 
 ## Remaining evidence and implementation frontier
 
