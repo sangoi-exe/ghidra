@@ -57,14 +57,16 @@ public final class SimTowerRuntimeProfile extends ToolchainProfile {
         // Ordinary native analysis independently owns the scanner13, emitter entry9 and flush52. The initial JMP skips all74 helper bytes; join the main entry and its native continuation, not the entire member region.
         var primary = c.range(NE1 + 0x200a, NE1 + 0x2024);
         primary.add(c.range(NE1 + 0x206e, NE1 + 0x249b));
-        c.function(NE1 + 0x200a, primary, "simtower_crt45_candidate_VPRINTER", 12, QUALIFICATION + " SPRF02 [200a,249b)1169 is regional correspondence coverage, not exclusive function ownership. Main native body joins entry[200a,2024) and continuation[206e,249b),1095 bytes; JMP2022 skips independent helpers[2024,206e). Terminal LEAVE; RET0c precedes data. Complete engine effects/servicing remain unreviewed.");
-        originalWord(c, NE1 + 0x2022, 0x4aeb);
-        var mainJump = c.program().getListing().getInstructionAt(c.mapped(NE1 + 0x2022));
-        if (mainJump.getFlowOverride() == FlowOverride.CALL_RETURN) {
-            // Retained ordinary analysis had split206e into a function and changed this exact JMP into CALL/RETURN pcode. Its joined continuation must use the original branch, not a synthetic callee.
-            mainJump.setFlowOverride(FlowOverride.NONE);
+        var main = c.function(NE1 + 0x200a, primary, "simtower_crt45_candidate_VPRINTER", 12, QUALIFICATION + " SPRF02 [200a,249b)1169 is regional correspondence coverage, not exclusive function ownership. Main native body joins entry[200a,2024) and continuation[206e,249b),1095 bytes; JMP2022 skips independent helpers[2024,206e). Terminal LEAVE; RET0c precedes data. Complete engine effects/servicing remain unreviewed.");
+        if (main.applied()) {
+            originalWord(c, NE1 + 0x2022, 0x4aeb);
+            var mainJump = c.program().getListing().getInstructionAt(c.mapped(NE1 + 0x2022));
+            if (mainJump.getFlowOverride() == FlowOverride.CALL_RETURN) {
+                // Retained ordinary analysis had split206e into a function and changed this exact JMP into CALL/RETURN pcode. Its joined continuation must use the original branch, not a synthetic callee.
+                mainJump.setFlowOverride(FlowOverride.NONE);
+            }
+            c.comment(NE1 + 0x2022, "SPRF02 original EB4A JMP ->206e joins the main continuation. Remove only this demonstrated stale CALL_RETURN override; no general flow-override cleanup.");
         }
-        c.comment(NE1 + 0x2022, "SPRF02 original EB4A JMP ->206e joins the main continuation. Remove only this demonstrated stale CALL_RETURN override; no general flow-override cleanup.");
         c.function(NE1 + 0x2024, c.range(NE1 + 0x2024, NE1 + 0x2031), "simtower_vprinter_scan_entry", UNKNOWN, QUALIFICATION + " SPRF02 native scanner13; real near CALLs22db/233b/236d and RET2030. No register-result prototype or stronger cleanup inferred.");
         c.function(NE1 + 0x2031, c.range(NE1 + 0x2031, NE1 + 0x203a), "simtower_vprinter_emit_entry", UNKNOWN, QUALIFICATION + " SPRF02 native exclusive emitter entry9, not a standalone returning nine-byte helper. SS:[DI] store/increment, parent-frame BYTE[BP-14] decrement; conditional2038 reaches shared RET206d, otherwise falls through to flush entry203a. Shared tail[203a,206e) remains owned by the native flush function; no overlapping function, synthetic callee or net cleanup/prototype inferred.");
         c.function(NE1 + 0x203a, c.range(NE1 + 0x203a, NE1 + 0x206e), "simtower_vprinter_flush_entry", UNKNOWN, QUALIFICATION + " SPRF02 native flush52 shares RET206d with emitter entry2031. Parent BP/current-frame callback[BP+e] at2051 has unknown callee contract. Native exclusive partition does not make the emitter's shared suffix disjoint code or establish standalone C parameters, callback effects or net cleanup.");

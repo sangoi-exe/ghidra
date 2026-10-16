@@ -1,6 +1,7 @@
 // Native exact-image assertions. Arguments: named decoded original, private output directory, direct|automatic.
 //@category LegacyToolchains
 
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -9,8 +10,10 @@ import java.util.HashSet;
 import dev.sangoi.ghidra.legacy.ToolchainProfile;
 import dev.sangoi.ghidra.legacy.ToolchainProfileAnalyzer;
 import dev.sangoi.ghidra.legacy.profiles.SimTowerRuntimeProfile;
+import ghidra.app.cmd.disassemble.DisassembleCommand;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AnalysisWorker;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
@@ -23,6 +26,8 @@ import ghidra.program.model.data.UnsignedIntegerDataType;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.FlowOverride;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Program;
+import ghidra.util.task.TaskMonitor;
 import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.model.reloc.Relocation;
 import ghidra.program.model.symbol.RefType;
@@ -211,6 +216,7 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
         require(symbols == currentProgram.getSymbolTable().getNumSymbols(), "Repeat must not duplicate labels");
         require(refs == currentProgram.getReferenceManager().getReferenceCountTo(context.mapped(0x60343)), "Repeat must not duplicate selected references");
         require(before.equals(currentProgram.getListing().getComment(CommentType.PLATE, context.mapped(0x2200))), "Repeat must not duplicate profile comments");
+        currentFunctionPreservation();
         Function guarded = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x5069));
         guarded.setName("user_owned_simtower_sprintf", SourceType.USER_DEFINED);
         guarded.setReturnType(UnsignedIntegerDataType.dataType, SourceType.USER_DEFINED);
@@ -222,14 +228,15 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
         require(signature.equals(guarded.getPrototypeString(true, true)) && body.equals(guarded.getBody()) && guarded.getSignatureSource() == SourceType.USER_DEFINED, "Actual user-owned function/signature/body must survive reapplication");
         require(currentProgram.getListing().getComment(CommentType.PLATE, context.mapped(0x5069)).startsWith(userComment), "User comment must survive reapplication");
         result.append("Repeat: stable datatypes/labels/selected references/comment; actual user-owned function/signature/body/comment preserved. Disposable validation Program retains deliberate user annotation.\n");
+        manualVprinterPreservation();
         dataPreservation();
         result.append("Limits: no game/CRT execution, candidate link, historical toolchain attribution, complete formatting/exception effects, modern prototypes or arbitrary BSS placement. Far-copy/F_SCOPY stronger contracts separately owned.\n");
         result.append(log).append('\n');
         Files.writeString(output.resolve("simtower-runtime-profile-validation.txt"), result);
-        println("SIMTOWER RUNTIME PROFILE VALIDATION PASS: " + args[2] + ";28 selected native functions by group, VPRINTER regional versus primary/helper ownership and all13 real helper CALLs/shared tail, code/data/file mapping and all selected binding owners, repeat and user-annotation preservation. " + output);
+        println("SIMTOWER RUNTIME PROFILE VALIDATION PASS: " + args[2] + ";28 selected native functions by group, VPRINTER regional versus primary/helper ownership and all13 real helper CALLs/shared tail, code/data/file mapping and all selected binding owners, changed-current-code/context refusal and relocated-field checking, repeat and manual VPRINTER flow/signature preservation. " + output);
     }
 
-    private void analyzeProfileChanges(String profileId) throws Exception {
+    private String collectProfileChanges() throws Exception {
         AutoAnalysisManager manager = AutoAnalysisManager.getAnalysisManager(currentProgram);
         int logStart = manager.getMessageLog().toString().length();
         StringBuilder finalLog = new StringBuilder();
@@ -247,7 +254,12 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
         finally {
             manager.removeListener(listener);
         }
-        require(finalLog.toString().contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
+        return finalLog.toString();
+    }
+
+    private void analyzeProfileChanges(String profileId) throws Exception {
+        String finalLog = collectProfileChanges();
+        require(finalLog.contains("Applied " + profileId + " final facts"), "Production final stage must execute successfully before rerun assertions: " + finalLog);
     }
 
     private void repeat() throws Exception {
@@ -259,6 +271,121 @@ public class ValidateSimTowerRuntimeProfile extends GhidraScript {
             profile.prepareData(context, monitor, log);
             profile.applyFinalFacts(context, monitor, log);
         }
+    }
+
+    private String refusedCurrentFacts(String reason) throws Exception {
+        require(profile.match(currentProgram, monitor) != null, "Original FileBytes identity must still qualify after the deliberate current-code change");
+        String refusal;
+        if (automatic) {
+            MessageLog preparation = new MessageLog();
+            require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, preparation), "Data preparation must succeed; final function qualification must decide this scenario: " + preparation);
+            refusal = collectProfileChanges();
+            require(!refusal.contains("Applied " + profile.id() + " final facts") && !refusal.contains("native boundaries/data/bindings applied"), "Refused current code must not report final success: " + refusal);
+        }
+        else {
+            refusal = "";
+            try {
+                profile.applyFinalFacts(context, monitor, new MessageLog());
+            }
+            catch (IllegalStateException conflict) {
+                refusal = conflict.getMessage();
+            }
+        }
+        require(refusal.contains("preserving current code") && refusal.contains(reason), "Current-code refusal must be visible for " + reason + ": " + refusal);
+        return refusal;
+    }
+
+    private void decodeFixture(ghidra.program.model.address.Address start, ghidra.program.model.address.Address end) {
+        DisassembleCommand decode = new DisassembleCommand(start, new AddressSet(start, end), false);
+        decode.enableCodeAnalysis(false);
+        require(decode.applyTo(currentProgram, monitor), "Decode only the deliberately modified native instruction: " + decode.getStatusMsg());
+    }
+
+    private void currentFunctionPreservation() throws Exception {
+        var listing = currentProgram.getListing();
+        var memory = currentProgram.getMemory();
+        Function main = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x420a));
+        AddressSet mainBody = new AddressSet(main.getBody());
+        var terminal = context.mapped(0x4698);
+        require(memory.getByte(terminal) == (byte) 0xc2 && memory.getShort(terminal.add(1)) == 12, "Actual VPRINTER terminal RET12 is the baseline, not a synthetic instruction");
+        listing.clearCodeUnits(terminal, terminal.add(2), false);
+        memory.setByte(terminal.add(1), (byte) 0);
+        decodeFixture(terminal, terminal.add(2));
+        main.setStackPurgeSize(0);
+        String comment = listing.getComment(CommentType.PLATE, main.getEntryPoint());
+        String refusal = refusedCurrentFacts("current byte differs");
+        require(main.getStackPurgeSize() == 0 && mainBody.equals(main.getBody()) && memory.getShort(terminal.add(1)) == 0 && listing.getInstructionAt(terminal).getScalar(0).getUnsignedValue() == 0, "Reapplication must preserve current RET0, native instruction, body and purge0 despite unchanged original identity");
+        require(comment.equals(listing.getComment(CommentType.PLATE, main.getEntryPoint())), "Refusal must not append a false function-contract success comment");
+        result.append("CURRENT RET0: actual FILE4699 changed12->0, redecoded only terminal RET; original identity still true; native RET0/body/purge0 preserved, no final-success log. Refusal: ").append(refusal).append('\n');
+        listing.clearCodeUnits(terminal, terminal.add(2), false);
+        memory.setByte(terminal.add(1), (byte) 12);
+        decodeFixture(terminal, terminal.add(2));
+        repeat();
+        require(main.getStackPurgeSize() == 12, "Restored original RET12 must qualify again");
+
+        for (String registerName : new String[] {"opsize", "addrsize"}) {
+            var register = currentProgram.getRegister(registerName);
+            listing.clearCodeUnits(terminal, terminal.add(2), false);
+            currentProgram.getProgramContext().setValue(register, terminal, terminal.add(2), BigInteger.ONE);
+            decodeFixture(terminal, terminal.add(2));
+            main.setStackPurgeSize(0);
+            refusal = refusedCurrentFacts("effective operand/address context is not 16-bit");
+            require(main.getStackPurgeSize() == 0 && mainBody.equals(main.getBody()) && BigInteger.ONE.equals(currentProgram.getProgramContext().getValue(register, terminal, false)), "Changed current " + registerName + " and function facts must survive refusal");
+            result.append("CURRENT CONTEXT ").append(registerName).append("=1 preserved with body/purge0; original identity still true; no final-success log. Refusal: ").append(refusal).append('\n');
+            listing.clearCodeUnits(terminal, terminal.add(2), false);
+            currentProgram.getProgramContext().setValue(register, terminal, terminal.add(2), BigInteger.ZERO);
+            decodeFixture(terminal, terminal.add(2));
+            repeat();
+        }
+
+        // This is an actual native loader-applied imported FAR field, not a mock relocation or an exempt byte range.
+        var field = context.mapped(0x6087);
+        relocation(0x6087, 3, 1, 5, 48);
+        var instruction = listing.getInstructionContaining(field);
+        var start = instruction.getMinAddress();
+        var end = instruction.getMaxAddress();
+        byte loaded = memory.getByte(field);
+        require(loaded != context.original().getOriginalByte(0x6087), "Real relocation must have changed the original chain terminator");
+        Function helper = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x606f));
+        AddressSet helperBody = new AddressSet(helper.getBody());
+        listing.clearCodeUnits(start, end, false);
+        byte changed = (byte) (loaded ^ 1);
+        memory.setByte(field, changed);
+        decodeFixture(start, end);
+        helper.setStackPurgeSize(0);
+        refusal = refusedCurrentFacts("current byte differs");
+        require(refusal.contains("FILE 6087") && memory.getByte(field) == changed && helper.getStackPurgeSize() == 0 && helperBody.equals(helper.getBody()) && listing.getInstructionAt(start) != null, "APPLIED relocation must not hide a current operand patch or reapply original purge6");
+        result.append("CURRENT RELOCATION: real imported FAR FILE6087 patched after native load; APPLIED metadata retained, original identity still true; patched instruction/body/purge0 preserved; no final-success log. Refusal: ").append(refusal).append('\n');
+        listing.clearCodeUnits(start, end, false);
+        memory.setByte(field, loaded);
+        decodeFixture(start, end);
+        repeat();
+        require(helper.getStackPurgeSize() == 6 && main.getStackPurgeSize() == 12, "Restored actual loader fields and contexts must qualify again");
+    }
+
+    private void manualVprinterPreservation() throws Exception {
+        Function main = currentProgram.getFunctionManager().getFunctionAt(context.mapped(0x420a));
+        var jump = currentProgram.getListing().getInstructionAt(context.mapped(0x4222));
+        // Install a stable manual fixture without queuing unrelated native body re-inference before the profile's final stage.
+        require(AutoAnalysisManager.getAnalysisManager(currentProgram).scheduleWorker(new AnalysisWorker() {
+            public String getWorkerName() {
+                return "Install manual VPRINTER preservation fixture";
+            }
+            public boolean analysisWorkerCallback(Program program, Object ignored, TaskMonitor workerMonitor) throws Exception {
+                main.setName("user_owned_simtower_VPRINTER", SourceType.USER_DEFINED);
+                main.setReturnType(UnsignedIntegerDataType.dataType, SourceType.USER_DEFINED);
+                jump.setFlowOverride(FlowOverride.CALL_RETURN);
+                return true;
+            }
+        }, null, false, monitor), "Install manual VPRINTER fixture in native suppressed-event worker");
+        String signature = main.getPrototypeString(true, true);
+        AddressSet body = new AddressSet(main.getBody());
+        int[] before = Arrays.stream(jump.getPcode(true)).mapToInt(PcodeOp::getOpcode).toArray();
+        require(Arrays.stream(before).anyMatch(op -> op == PcodeOp.CALL) && Arrays.stream(before).anyMatch(op -> op == PcodeOp.RETURN), "Deliberate manual VPRINTER override must actually produce effective CALL/RETURN pcode");
+        repeat();
+        require(signature.equals(main.getPrototypeString(true, true)) && body.equals(main.getBody()) && main.getSignatureSource() == SourceType.USER_DEFINED, "Actual manual VPRINTER body/signature must survive production reapplication: before=" + body + " / " + signature + "; after=" + main.getBody() + " / " + main.getPrototypeString(true, true));
+        require(jump.getFlowOverride() == FlowOverride.CALL_RETURN && Arrays.equals(before, Arrays.stream(jump.getPcode(true)).mapToInt(PcodeOp::getOpcode).toArray()), "Preserved VPRINTER must retain its intentional override and effective CALL/RETURN pcode, not receive dependent main-flow cleanup");
+        result.append("MANUAL VPRINTER: USER_DEFINED body/signature and intentional FILE4222 CALL_RETURN override/effective CALL+RETURN pcode all survive actual reapplication.\n");
     }
 
     private void dataPreservation() throws Exception {

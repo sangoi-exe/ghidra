@@ -1,6 +1,7 @@
 // Exact-image native assertions. Arguments: original path, existing private output directory, direct|automatic, baseline|patched-core.
 //@category LegacyToolchains
 
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -13,6 +14,7 @@ import dev.sangoi.ghidra.legacy.profiles.Tlink51Profile;
 import dev.sangoi.ghidra.legacy.profiles.TlinkWriterContract;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.script.GhidraScript;
+import ghidra.app.plugin.core.analysis.AnalysisWorker;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManager;
 import ghidra.app.plugin.core.analysis.AutoAnalysisManagerListener;
 import ghidra.app.util.importer.MessageLog;
@@ -20,9 +22,12 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.data.CategoryPath;
 import ghidra.program.model.data.Structure;
+import ghidra.program.model.data.UnsignedShortDataType;
 import ghidra.program.model.lang.Register;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.Program;
+import ghidra.util.task.TaskMonitor;
 import ghidra.program.model.pcode.PcodeOp;
 import ghidra.program.model.pcode.Varnode;
 import ghidra.program.model.symbol.RefType;
@@ -101,6 +106,33 @@ public class ValidateTlinkProfiles extends GhidraScript {
         require(before.equals(currentProgram.getListing().getComment(CommentType.PLATE, writer.getEntryPoint())), "Repeated application does not duplicate writer qualification");
         result.append(args[2].equals("automatic") ? "Repeated production analyzer native batch: unchanged datatype/symbol counts and writer comment.\n" : "Repeated explicit direct profile application: unchanged datatype/symbol counts and writer comment; automatic batch behavior not proved.\n");
         decompileWriter(writer, output);
+        // As with production facts, keep fixture installation from queuing unrelated native inference.
+        String manualName = "user_owned_" + name;
+        var ds = currentProgram.getRegister("DS");
+        require(AutoAnalysisManager.getAnalysisManager(currentProgram).scheduleWorker(new AnalysisWorker() {
+            public String getWorkerName() {
+                return "Install manual TLINK writer preservation fixture";
+            }
+            public boolean analysisWorkerCallback(Program program, Object ignored, TaskMonitor workerMonitor) throws Exception {
+                writer.setName(manualName, SourceType.USER_DEFINED);
+                writer.setReturnType(UnsignedShortDataType.dataType, SourceType.USER_DEFINED);
+                writer.setStackPurgeSize(26);
+                currentProgram.getProgramContext().setValue(ds, writer.getEntryPoint(), writer.getBody().getMaxAddress(), BigInteger.valueOf(0x3456));
+                return true;
+            }
+        }, null, false, monitor), "Install manual writer fixture in native suppressed-event worker");
+        String manualSignature = writer.getPrototypeString(true, true);
+        AddressSet manualBody = new AddressSet(writer.getBody());
+        if (args[2].equals("automatic")) {
+            require(new ToolchainProfileAnalyzer().added(currentProgram, currentProgram.getMemory(), monitor, log), "Production manual-writer reapplication failed: " + log);
+            analyzeProfileChanges(profile.id());
+        }
+        else {
+            profile.applyFinalFacts(context, monitor, log);
+        }
+        require(writer.getSignatureSource() == SourceType.USER_DEFINED && manualSignature.equals(writer.getPrototypeString(true, true)) && manualBody.equals(writer.getBody()) && writer.getStackPurgeSize() == 26, "Higher-priority writer signature/body/purge must not receive dependent writer-contract mutation");
+        require(BigInteger.valueOf(0x3456).equals(currentProgram.getProgramContext().getValue(ds, writer.getEntryPoint(), false)), "Preserved writer must retain manual DS instead of dependent contract removal");
+        result.append("Manual writer: USER_DEFINED signature/body/purge26 and DS3456 survive reapplication; dependent writer-contract application skipped.\n");
         result.append("No caller-propagation proof, historical C ABI/identity, dynamic selector/code alias, external service/physical-I/O success or debug import claimed. Runtime label is invocation metadata; C/HighFunction artifacts record actual observed output.\n").append(log);
         Files.writeString(output.resolve(profile.id() + "-validation.txt"), result);
         println("TLINK PROFILE VALIDATION PASS " + profile.id() + " " + args[2] + " " + args[3]);

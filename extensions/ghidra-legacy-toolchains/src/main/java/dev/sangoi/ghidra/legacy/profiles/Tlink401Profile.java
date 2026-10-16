@@ -46,7 +46,9 @@ public final class Tlink401Profile extends ToolchainProfile {
     public void applyFinalFacts(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
         monitor.checkCancelled();
         var writer = c.function(0x3458, 0x34ee, "tlink401_rewrite_far_window_cf", 0, "R118/R144: CS0 load-image[3058,30EE), original FILE=0400+load offset. Descriptor kind1/3 and representative word4==BX plus opcode/buffer guards are required; not final physical-segment equality. DS03E6/03E8 are current entry/record coordinates;077E/079E select distinct arrays. For j=DX&03FF, old operand is read before opcode rejection.9A→90 0E E8, EA→90 90 E9; j0 additionally checks0210/0212 and uses saved opcode0214, setting carry-back0C4C. Success adds F802 to fullDX, subtracts j/4/current03E8 fromCX, writes marker021C=FFFF and setsCF; rejectionCF0. Saved AX/SI/DI restored; finalES is descriptor view.");
-        TlinkWriterContract.apply(c, writer, monitor);
+        if (writer.applied()) {
+            TlinkWriterContract.apply(c, writer.function(), monitor);
+        }
         c.function(0x3556, 0x3622, "tlink401_location_dispatch", 0, "R144: complete3156..3222 including diagnostic backedge3220→31B2.3198 compares currentDS0450 against I[BX]+2; equality bypasses writer.31A5 calls3058 only on inequality; returnedCF1 skips30EE. No immediate5.1-style disable guard in this partition; upstream controls remain open.");
         c.function(0x6e8f, 0x702a, "tlink401_produce_entry_family", 0, "R144: current07BE list; combinable same-name entries retain remembered entry offset in R+2. Nonzero alignmentE0/combine1C and list/order/state conditions apply; producer does not itself compare class handles. OrdinaryRET6BF2, diagnostic tail through6C28 included.");
         c.function(0x70fb, 0x7127, "tlink401_allocate_descriptor20", 0, "R144: request14h via079A; successful usable allocation clears20 bytes, stores currentSI at descriptor+4, independently increments06B9 and stores number at+6. Growth/error effects unresolved; representative is not descriptor number/finalCS.");

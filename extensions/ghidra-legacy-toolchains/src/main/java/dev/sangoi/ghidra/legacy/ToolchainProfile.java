@@ -1,16 +1,25 @@
 package dev.sangoi.ghidra.legacy;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import ghidra.app.cmd.disassemble.DisassembleCommand;
+import ghidra.app.util.bin.FileBytesProvider;
+import ghidra.app.util.bin.format.ne.NewExecutable;
+import ghidra.app.util.bin.format.ne.WindowsHeader;
 import ghidra.app.util.importer.MessageLog;
+import ghidra.app.util.opinion.MzLoader;
+import ghidra.app.util.opinion.NeLoader;
 import ghidra.program.database.mem.FileBytes;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
+import ghidra.program.model.address.SegmentedAddress;
 import ghidra.program.model.data.DataType;
 import ghidra.program.model.listing.CommentType;
 import ghidra.program.model.listing.Function;
@@ -18,6 +27,7 @@ import ghidra.program.model.listing.Program;
 import ghidra.program.model.reloc.Relocation;
 import ghidra.program.model.symbol.RefType;
 import ghidra.program.model.symbol.SourceType;
+import ghidra.program.model.symbol.SymbolUtilities;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
 
@@ -71,6 +81,10 @@ public abstract class ToolchainProfile {
 
     /** Final qualified code extents, cleanup and function contracts, after ordinary analysis. */
     public abstract void applyFinalFacts(Context context, TaskMonitor monitor, MessageLog log) throws Exception;
+
+    /** Dependent mutations may run only when the qualified function facts were applied. */
+    public record FunctionApplication(Function function, boolean applied) {
+    }
 
     public static final class Context {
         private final Program program;
@@ -188,12 +202,12 @@ public abstract class ToolchainProfile {
         }
 
         /** Complete evidenced extent and cleanup only; no inferred parameter/return prototype. */
-        public Function function(long start, long endExclusive, String name, int purge, String qualification) throws Exception {
+        public FunctionApplication function(long start, long endExclusive, String name, int purge, String qualification) throws Exception {
             return function(start, range(start, endExclusive), name, purge, qualification + " Complete original-file extent [" + Long.toHexString(start) + "," + Long.toHexString(endExclusive) + ")");
         }
 
         /** Qualified native code body; separate ranges can exclude a genuinely independent entry. */
-        public Function function(long start, AddressSet body, String name, int purge, String qualification) throws Exception {
+        public FunctionApplication function(long start, AddressSet body, String name, int purge, String qualification) throws Exception {
             Address entry = mapped(start);
             if (!body.contains(entry)) {
                 throw new IllegalArgumentException("Qualified function body must contain its original-file entry");
@@ -202,9 +216,10 @@ public abstract class ToolchainProfile {
             for (Function existing : overlapping(body)) {
                 if (existing.getSignatureSource().isHigherPriorityThan(SourceType.ANALYSIS) || existing.getSymbol().getSource().isHigherPriorityThan(SourceType.ANALYSIS)) {
                     comment(start, "Preserved higher-priority function/signature; qualified native body " + body + ". " + qualification);
-                    return existing;
+                    return new FunctionApplication(existing, false);
                 }
             }
+            requireCurrentCode(body);
             Function function = manager.getFunctionAt(entry);
             for (Function existing : overlapping(body)) {
                 if (existing != function) {
@@ -245,7 +260,161 @@ public abstract class ToolchainProfile {
             function.setStackPurgeSize(purge);
             String cleanup = purge == Function.UNKNOWN_STACK_DEPTH_CHANGE ? "unknown" : purge + " argument bytes";
             comment(start, qualification + "; cleanup " + cleanup + ", not total return-frame delta. No stronger prototype or callee preservation inferred.");
-            return function;
+            return new FunctionApplication(function, true);
+        }
+
+        private IllegalStateException unqualified(Address address, String reason) {
+            return new IllegalStateException(marker + " preserving current code at " + address + ": " + reason + "; original identity does not qualify current function facts");
+        }
+
+        private long originalOffset(Address address) {
+            var info = program.getMemory().getAddressSourceInfo(address);
+            if (info == null || !original.equals(info.getMemoryBlockSourceInfo().getFileBytes().orElse(null)) || info.getFileOffset() < 0 || info.getFileOffset() >= original.getSize()) {
+                throw unqualified(address, "missing qualified original-file provenance");
+            }
+            return info.getFileOffset();
+        }
+
+        private void requireCurrentCode(AddressSet body) throws Exception {
+            // Build only this body's expected loader-written fields, never a baseline from current operands.
+            Map<Address, Byte> relocated = new HashMap<>();
+            WindowsHeader ne = null;
+            var relocations = program.getRelocationTable().getRelocations();
+            while (relocations.hasNext()) {
+                monitor.checkCancelled();
+                Relocation relocation = relocations.next();
+                Address source = relocation.getAddress();
+                int length = relocation.getLength();
+                if (length == 0) {
+                    if (body.contains(source)) {
+                        throw unqualified(source, "unknown relocation width");
+                    }
+                    continue;
+                }
+                Address end = source.add(length - 1);
+                if (!body.intersects(source, end)) {
+                    continue;
+                }
+                if (!body.contains(source, end) || relocation.getStatus() != Relocation.Status.APPLIED) {
+                    throw unqualified(source, "incomplete or unapplied relocation field");
+                }
+                if (NeLoader.NE_NAME.equals(program.getExecutableFormat()) && ne == null) {
+                    ne = new NewExecutable(new FileBytesProvider(original), null).getWindowsHeader();
+                }
+                long expected = expectedRelocation(relocation, ne);
+                for (int i = 0; i < length; i++) {
+                    Address address = source.add(i);
+                    originalOffset(address);
+                    if (relocated.put(address, (byte) (expected >>> (8 * i))) != null) {
+                        throw unqualified(address, "overlapping relocation fields");
+                    }
+                }
+            }
+            var context = program.getProgramContext();
+            var operandSize = program.getRegister("opsize");
+            var addressSize = program.getRegister("addrsize");
+            if (operandSize == null || addressSize == null) {
+                throw unqualified(body.getMinAddress(), "missing effective 16-bit context registers");
+            }
+            for (Address address : body.getAddresses(true)) {
+                monitor.checkCancelled();
+                long offset = originalOffset(address);
+                byte expected = relocated.containsKey(address) ? relocated.get(address) : original.getOriginalByte(offset);
+                if (program.getMemory().getByte(address) != expected) {
+                    throw unqualified(address, "current byte differs from original/native relocation expectation at FILE " + Long.toHexString(offset));
+                }
+                if (!BigInteger.ZERO.equals(context.getValue(operandSize, address, false)) || !BigInteger.ZERO.equals(context.getValue(addressSize, address, false))) {
+                    throw unqualified(address, "effective operand/address context is not 16-bit");
+                }
+            }
+        }
+
+        private long expectedRelocation(Relocation relocation, WindowsHeader ne) throws Exception {
+            Address source = relocation.getAddress();
+            long[] values = relocation.getValues();
+            int type = relocation.getType();
+            int length = relocation.getLength();
+            // MzLoader records the actual loaded WORD independently of the operand's current value.
+            if (MzLoader.MZ_NAME.equals(program.getExecutableFormat()) && type == 0 && length == 2 && values != null && values.length == 3 && values[2] >= 0 && values[2] <= 0xffff) {
+                return values[2];
+            }
+            // These are the evidenced NeLoader classes. Selector writes ignore additive, unlike FAR writes.
+            if (ne == null || values == null || values.length != 5 || !((type == 3 && length == 4 && (values[1] == 0 || values[1] == 1)) || (type == 2 && length == 2 && (values[1] == 0 || values[1] == 4)) || (type == 5 && length == 2 && values[1] == 0))) {
+                throw unqualified(source, "unsupported native relocation evidence");
+            }
+            SegmentedAddress target;
+            int targetSegment = (int) values[3] & 0xffff;
+            int targetOffset = (int) values[4] & 0xffff;
+            if (values[1] == 1) {
+                var modules = ne.getModuleReferenceTable().getNames();
+                if (targetSegment < 1 || targetSegment > modules.length) {
+                    throw unqualified(source, "invalid import module ordinal");
+                }
+                String library = modules[targetSegment - 1].getString();
+                String name = SymbolUtilities.ORDINAL_PREFIX + targetOffset;
+                var locations = program.getExternalManager().getExternalLocations(library);
+                List<Function> matches = new ArrayList<>();
+                while (locations.hasNext()) {
+                    var location = locations.next();
+                    if (name.equals(location.getLabel()) || name.equals(location.getOriginalImportedName())) {
+                        Function function = location.getFunction();
+                        if (function == null) {
+                            throw unqualified(source, "import is not a native external function");
+                        }
+                        matches.add(function);
+                    }
+                }
+                if (matches.size() != 1) {
+                    throw unqualified(source, "import identity is not unique: " + library + "!" + name);
+                }
+                Address[] thunks = matches.get(0).getFunctionThunkAddresses(false);
+                if (thunks == null || thunks.length != 1 || !(thunks[0] instanceof SegmentedAddress segmented)) {
+                    throw unqualified(source, "import does not have one direct native segmented thunk");
+                }
+                target = segmented;
+            }
+            else {
+                if (targetSegment == 0xff) {
+                    int ordinal = 1;
+                    boolean found = false;
+                    for (var bundle : ne.getEntryTable().getBundles()) {
+                        int count = Byte.toUnsignedInt(bundle.getCount());
+                        if (targetOffset >= ordinal && targetOffset < ordinal + count) {
+                            if (bundle.getType() == 0 || bundle.isConstant()) {
+                                throw unqualified(source, "movable target is an unused/constant entry");
+                            }
+                            var entry = bundle.getEntryPoints()[targetOffset - ordinal];
+                            targetSegment = Byte.toUnsignedInt(bundle.isMoveable() ? entry.getSegment() : bundle.getType());
+                            targetOffset = Short.toUnsignedInt(entry.getOffset());
+                            found = true;
+                            break;
+                        }
+                        ordinal += count;
+                    }
+                    if (!found) {
+                        throw unqualified(source, "missing movable target entry");
+                    }
+                }
+                var segments = ne.getSegmentTable().getSegments();
+                if (targetSegment < 1 || targetSegment > segments.length) {
+                    throw unqualified(source, "invalid internal segment ordinal");
+                }
+                var segment = segments[targetSegment - 1];
+                int size = Short.toUnsignedInt(segment.getLength());
+                if (segment.getOffsetShiftAligned() == 0 || targetOffset >= (size == 0 ? 0x10000 : size)) {
+                    throw unqualified(source, "internal target is not original-file backed");
+                }
+                Address mappedTarget = mapped(Integer.toUnsignedLong(segment.getOffsetShiftAligned()) + targetOffset);
+                if (!(mappedTarget instanceof SegmentedAddress segmented)) {
+                    throw unqualified(source, "internal target is not a native segmented mapping");
+                }
+                target = segmented;
+            }
+            return switch (type) {
+                case 2 -> target.getSegment();
+                case 5 -> target.getSegmentOffset();
+                default -> ((long) target.getSegment() << 16) | target.getSegmentOffset();
+            };
         }
 
         /**

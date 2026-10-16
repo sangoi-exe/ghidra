@@ -53,7 +53,9 @@ public final class Tlink51Profile extends ToolchainProfile {
     public void applyFinalFacts(Context c, TaskMonitor monitor, MessageLog log) throws Exception {
         monitor.checkCancelled();
         var writer = function(c, 0x3c0b, 0x3ca1, "rewrite_far_window_cf", "R118/K2: complete150-byte/51-instruction writer. Current09C0 array at058C selects descriptor in09D8; kind1/3 and word4==BX required. j=DX&03FF; old operand read before opcode rejection.9A→90 0E E8, EA→90 90 E9; j0 checks saved0282/0284 before0286 opcode and sets0CD6. Success addsF802 to fullDX, subtracts j/4/fresh058E fromCX and writes028E=FFFF/CF1; rejectionCF0. AX/SI/DI restored, finalES descriptor selector. Representative equality is not a universal physical-segment rule.");
-        TlinkWriterContract.apply(c, writer, monitor);
+        if (writer.applied()) {
+            TlinkWriterContract.apply(c, writer.function(), monitor);
+        }
         function(c, 0x3b87, 0x3c0b, "flush_rewrite_buffer", "R118: saves last opcode/current record boundary in0286/0284/0282. Carry-back0CD6 conditionally extends source/position backward1.9E96 is a buffer-copy request, not physical-I/O success.");
         window(c, 0x4f33, 0x4f97, "source_record_setup", "R118: selected setup partition, stores currentBX at058C, adjusted low/high record offset058E/0590, copied count058A and DS0CD8 buffer. Not a complete containing function or finalNE segment identity.", monitor);
         window(c, 0x3d18, 0x3d9c, "location_dispatch", "R118/R198 partial dispatcher, not entire function: (DH&1C)>>1 indexes table.0C→3D5A requires current01A9!=1 and special-class comparison inequality, calls3C0B at3D6E; acceptedCF skips3CA1.04→3D28 and14→3D73 are separate; imported-symbol40E5 return bypasses this dispatcher.", monitor);
@@ -214,7 +216,7 @@ public final class Tlink51Profile extends ToolchainProfile {
         resolve(c, location);
     }
 
-    private Function function(Context c, int start, int end, String name, String qualification) throws Exception {
+    private FunctionApplication function(Context c, int start, int end, String name, String qualification) throws Exception {
         return c.function(CODE_FILE + start, CODE_FILE + end, "tlink51_" + name, 0, qualification);
     }
 
