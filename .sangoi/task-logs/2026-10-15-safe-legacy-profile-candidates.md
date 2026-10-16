@@ -78,13 +78,15 @@ Root invoked the actual matching SDK's private `labelLoadTable` method in native
 
 Classification: `verified_defect` at the native switch data-creation owner. The preserved-data check already establishes the intended non-destructive property, but its range is narrower than forced creation's effect. The isolated native call reproduces the exact damage pattern seen in automatic SimTower. Per-address tracing of the full automatic run was not performed; the next full import remains the closure oracle.
 
-### Material routes and pending decision
+### Material routes and selected decision
 
 Recommended closure is `modify_existing_owner`: narrowly correct native switch markup so cell creation preserves intersecting defined aggregates and references, with a focused regression at its existing test boundary. This preserves the selected array representation and two-phase design and avoids a compensating extension pass. It requires an explicit exception to this task's core-read-only Scope. No loader, C++ decompiler, protocol or new analysis mechanism is proposed.
 
-An evidenced extension-only alternative is to represent the affected table as 24 independent WORD data units. The native cells control preserves that shape. It avoids an original-source edit but changes the current aggregate representation/validation contract and leaves the native destructive behavior in place for other arrays/structures. Neither alternative is selected yet. The core correction is preferred for correctness and lower exception/duplication cost, not merely diff size. Both are locally reversible changes; no existing user project or global installation is involved.
+An evidenced extension-only alternative is to represent the affected table as 24 independent WORD data units. The native cells control preserves that shape. It avoids an original-source edit but changes the current aggregate representation/validation contract and leaves the native destructive behavior in place for other arrays/structures. The core correction was recommended for correctness and lower exception/duplication cost, not merely diff size. Both are locally reversible changes; no existing user project or global installation is involved.
 
-The required user decision is whether to admit the narrow native-owner correction while retaining the array representation, or select the representation change. After selection, the next verification is the native aggregate-preservation regression plus the same complete fresh automatic SimTower oracle. No further implementation or Gate is launched while this material decision is pending.
+The user selected `recomendada`, turn `01a14275-4042-70f2-bf51-6c1e4ef46269`, at `2026-10-15T23:05:43.192-03:00`, source-session line 7867, after the route/paraphrase at line 7860. This admits the narrow native switch-markup correction and focused regression while retaining the array and selected two-phase design. The canonical plan records the owner-boundary extension as strategy epoch 2. No core mutation has occurred. The next proof is the native aggregate-preservation regression plus the same complete fresh automatic SimTower oracle on the corrected private runtime.
+
+The local Plan Auditor on `/root/safe_legacy_candidates_plan_audit` returned `PROCEED` for Doctrine / Strategy reset / epoch 2, with complete required contract coverage and no material findings or required evidence-blocked fields. It verified the user selection, native defect evidence and bounded source/test exception, without rerunning tests or approving implementation. Root recorded the required on-hold transition; later current-user implementation authorization remains pending.
 
 ## Remaining evidence and implementation frontier
 
