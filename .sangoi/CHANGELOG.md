@@ -4,9 +4,9 @@
 
 - Correct overflow in both MCP pagination helpers; the two reproduced maximum-limit failures now pass within 12 focused tests. Checkpoint `c85f7d109215112a8d109f50a8595e0de447be84` is not yet integration-reviewed.
 
-- Qualify operand/address context at every recognized helper instruction. Native F_SCOPY internal-context cases are rejected, the normal control is accepted, and existing helper/caller validators pass. Checkpoint `3e86200e17f3046ae77e2806e0c77366b2080d28` does not close the separately unverified memset-target check.
+- Qualify operand/address context at every recognized helper instruction. Native F_SCOPY internal-context cases are rejected, the normal control is accepted, and existing helper/caller validators pass. Checkpoint `3e86200e17f3046ae77e2806e0c77366b2080d28` does not close the separate memset-target check, whose bypass is now reproduced and remains pending.
 
-- Stop the data-preservation slice after direct proof passes but fresh automatic SimTower profile completion fails on data created before the late profile pass. The user selected separate early data preparation and late function/contract application within the existing extension. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) records that sequencing amendment, not an implemented correction; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves the evidence and incomplete state. New candidates, final Code Gate, deployment and push remain unfinished or unauthorized as recorded there.
+- The user-selected early-data/late-function candidate builds and resolves the initial data-ordering conflict, but automatic SimTower still fails on destruction of an existing dispatch array. A direct native SDK probe reproduces that array/structure/reference loss in Ghidra's switch-markup owner. The [current plan](planning/2026-10-15-safe-legacy-profile-candidates.md) awaits the user's narrow core-correction versus representation decision; the [execution record](task-logs/2026-10-15-safe-legacy-profile-candidates.md) preserves both attempts and their limits. No new candidate, completed Code Gate, deployment or push is claimed.
 
 ## Unreleased — integrated toolchain analysis and segmented C
 
