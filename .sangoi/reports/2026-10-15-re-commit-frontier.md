@@ -1,6 +1,6 @@
 # Local RE commit frontiers and reusable findings
 
-This report records the previous Johnny Castaway and SimTower commit screenings, the useful evidence recovered from those screenings, and a finite follow-up of local commits. The user requested this record on 2026-10-15 while Ghidra's compiler-stack selector correction continued. This is an evidence report, not another implementation plan or authority to add features. The active [Intent Contract](../planning/2026-10-15-legacy-toolchains-integrated-expansion.md) owns product Scope.
+This report records the previous Johnny Castaway and SimTower commit screenings, the useful evidence recovered from those screenings, and a finite follow-up of local commits. The user requested this record on 2026-10-15 while Ghidra's compiler-stack selector correction continued. This is an evidence report, not another implementation plan or authority to add features. The [preceding Intent Contract](../planning/2026-10-15-legacy-toolchains-integrated-expansion.md) is complete. The user subsequently selected four candidate groups plus five reproduced corrections under the [current Intent Contract](../planning/2026-10-15-safe-legacy-profile-candidates.md); that plan owns the new product Scope and status. This selection does not move the fixed screening frontiers below or claim implementation.
 
 The commit sweep uses fixed local Git objects, with bounded historical rollout and retained-proof evidence where stated. This sweep did not fetch, use GitHub, execute original programs or modify either RE repository. Human-facing times below use `America/Sao_Paulo` with offset `-03:00`.
 
@@ -130,7 +130,7 @@ The vendor archive reader rejected an A3 comment; actual TLIB extraction omitted
 
 Canonical committed owners are `.sangoi/research/windows-toolchain-fingerprints.md`, `windows-ne67-prefix-layout.md` and `borland-bcc45-register-allocation.md` (RF26/RF30/RF31), with direct conditional-emission corrections. The remaining review/ledger, palette/font/graphics and regional-matching commits mainly advance SimTower reconstruction rather than establish reusable extension features.
 
-## Recommended use of this evidence
+## Recommendations at the screening checkpoint
 
 1. Finish the already-selected compiler-stack correction and its validation. None of the new commits changes that admitted route or supplies permission to fold in unrelated features.
 2. For a later capability decision, the strongest distinct helper candidate is the whole overlap-aware move provider. The strongest existing-profile additions are Johnny's complete BCC3.1 lowering/record-preparation and BCC2.0 selector/operand mechanisms. Compare these bounded owners with their actual retained bytes before implementation.
@@ -138,7 +138,7 @@ Canonical committed owners are `.sangoi/research/windows-toolchain-fingerprints.
 4. Use the connected C matching work as a regression corpus only when a requested property or observed Ghidra failure identifies a relevant test. Regional equality alone is not a reason to add a large permanent test matrix.
 5. Retain already-implemented overlap as stronger provenance, not duplicate analyzers: arithmetic shifts, F_SCOPY, the forward-only copier, and NE import-overlay observations have existing owners.
 
-These are recommendations for later user selection. No new helper, profile function, source hypothesis, platform-name import or test suite was admitted or implemented by this sweep.
+These were recommendations for later user selection. No new helper, profile function, source hypothesis, platform-name import or test suite was admitted or implemented by this sweep. Subsequent selection and execution belong to the current Intent Contract linked above; the recommendations in this section remain a historical account of the screening result.
 
 ## Coverage and continuation limits
 
